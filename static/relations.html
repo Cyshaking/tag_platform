@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>表关系配置</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <h1>🏷️ 标签配置管理平台</h1>
+    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
+  </div>
+  <div class="nav">
+    <a href="/static/dashboard.html">🏠 首页</a>
+    <a href="/static/metadata.html">📊 元数据</a>
+    <a href="/static/themes.html">🎯 业务主题</a>
+    <a href="/static/relations.html">🔗 表关系</a>
+    <a href="/static/enum_config.html">🏷️ 枚举</a>
+    <a href="/static/datasources.html">🗄️ 数据源</a>
+    <a href="/static/approvals.html">✅ 审批</a>
+    <a href="/static/tag_tasks.html">📋 标签任务</a>
+    <a href="/static/users.html">👤 用户角色</a>
+  </div>
+
+  <div class="container">
+    <h2>🔗 表关系配置</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:15px;">
+      配置两张表之间的 JOIN 关联（左表字段 = 右表字段），标签任务的 SQL 生成会按此关系自动拼接 INNER / LEFT JOIN。
+    </p>
+
+    <div style="background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+      <h3>新建关联关系</h3>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
+        <div>
+          <label>左表 *</label>
+          <select id="l_table" onchange="fillFields('l')"></select>
+        </div>
+        <div>
+          <label>左表字段 *</label>
+          <select id="l_field"></select>
+        </div>
+        <div>
+          <label>关联类型 *</label>
+          <select id="relation_type">
+            <option value="INNER">INNER JOIN</option>
+            <option value="LEFT">LEFT JOIN</option>
+            <option value="RIGHT">RIGHT JOIN</option>
+          </select>
+        </div>
+        <div>
+          <label>右表 *</label>
+          <select id="r_table" onchange="fillFields('r')"></select>
+        </div>
+        <div>
+          <label>右表字段 *</label>
+          <select id="r_field"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="saveRelation()" class="btn btn-primary">💾 保存关系</button>
+        <button onclick="loadData()" class="btn btn-secondary">🔄 刷新</button>
+      </div>
+    </div>
+
+    <div id="relationList"></div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    checkLogin();
+    document.getElementById('userName').textContent =
+      JSON.parse(localStorage.getItem('user') || '{}').display_name || '';
+    function logout() { clearToken(); localStorage.clear(); location.href = '/static/index.html'; }
+
+    let TABLES = [];
+
+    // 加载全部元数据表，构建下拉选项
+    async function loadTables() {
+      const r = await apiGet('/api/metadata/tables');
+      TABLES = r.data || [];
+      const opts = TABLES.map(t => `<option value="${t.id}">${t.table_name}</option>`).join('');
+      document.getElementById('l_table').innerHTML = opts;
+      document.getElementById('r_table').innerHTML = opts;
+      fillFields('l');
+      fillFields('r');
+    }
+
+    // 根据选中的表填充字段下拉
+    function fillFields(side) {
+      const tid = parseInt(document.getElementById(side + '_table').value);
+      const table = TABLES.find(t => t.id === tid);
+      const fields = (table && table.fields) || [];
+      document.getElementById(side + '_field').innerHTML =
+        fields.map(f => `<option value="${f.id}">${f.field_name} (${f.field_type})</option>`).join('');
+    }
+
+    function tableName(id) {
+      const t = TABLES.find(x => x.id === id);
+      return t ? t.table_name : '#' + id;
+    }
+    function fieldName(tid, fid) {
+      const t = TABLES.find(x => x.id === tid);
+      if (!t || !t.fields) return '#' + fid;
+      const f = t.fields.find(x => x.id === fid);
+      return f ? f.field_name : '#' + fid;
+    }
+
+    async function loadData() {
+      try {
+        const r = await apiGet('/api/relations');
+        const data = r.data || [];
+        renderTable(
+          ['ID', '左表', '左字段', '关联类型', '右表', '右字段', '操作'],
+          data.map(x => [
+            x.id,
+            tableName(x.left_table_id),
+            fieldName(x.left_table_id, x.left_field_id),
+            `<b>${x.relation_type} JOIN</b>`,
+            tableName(x.right_table_id),
+            fieldName(x.right_table_id, x.right_field_id),
+            `<button class="btn btn-danger" onclick="delRelation(${x.id})">删除</button>`
+          ]),
+          'relationList'
+        );
+      } catch (e) { showMsg(e.message, true); }
+    }
+
+    async function saveRelation() {
+      const leftTableId = parseInt(document.getElementById('l_table').value);
+      const leftFieldId = parseInt(document.getElementById('l_field').value);
+      const rightTableId = parseInt(document.getElementById('r_table').value);
+      const rightFieldId = parseInt(document.getElementById('r_field').value);
+      const relationType = document.getElementById('relation_type').value;
+
+      if (!leftTableId || !leftFieldId || !rightTableId || !rightFieldId) {
+        showMsg('请先选择左表/右表及其字段', true);
+        return;
+      }
+      if (leftTableId === rightTableId) {
+        showMsg('左表与右表不能相同', true);
+        return;
+      }
+      try {
+        await apiPost('/api/relations', {
+          left_table_id: leftTableId, left_field_id: leftFieldId,
+          right_table_id: rightTableId, right_field_id: rightFieldId,
+          relation_type: relationType
+        });
+        showMsg('关系保存成功');
+        loadData();
+      } catch (e) { showMsg(e.message, true); }
+    }
+
+    async function delRelation(id) {
+      if (!confirm('确认删除该关联关系？')) return;
+      try {
+        await apiDelete('/api/relations/' + id);
+        showMsg('已删除');
+        loadData();
+      } catch (e) { showMsg(e.message, true); }
+    }
+
+    (async function init() {
+      try {
+        await loadTables();
+        await loadData();
+      } catch (e) { showMsg('加载失败: ' + e.message, true); }
+    })();
+  </script>
+</body>
+</html>

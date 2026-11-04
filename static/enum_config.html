@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>字段枚举配置</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <h1>🏷️ 标签配置管理平台</h1>
+    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
+  </div>
+  <div class="nav">
+    <a href="/static/dashboard.html">🏠 首页</a>
+    <a href="/static/metadata.html">📊 元数据</a>
+    <a href="/static/themes.html">🎯 业务主题</a>
+    <a href="/static/relations.html">🔗 表关系</a>
+    <a href="/static/enum_config.html">🏷️ 枚举</a>
+    <a href="/static/datasources.html">🗄️ 数据源</a>
+    <a href="/static/approvals.html">✅ 审批</a>
+    <a href="/static/tag_tasks.html">📋 标签任务</a>
+    <a href="/static/users.html">👤 用户角色</a>
+  </div>
+
+  <div class="container">
+    <h2>🏷️ 字段枚举配置</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:15px;">
+      为字段维护枚举值（编码 / 含义）。标签任务的 SQL 生成会在 WHERE 中追加 <code>字段 IN ('编码1','编码2')</code> 过滤条件。
+    </p>
+
+    <div style="background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div>
+          <label>选择表 *</label>
+          <select id="sel_table" onchange="onTableChange()"></select>
+        </div>
+        <div>
+          <label>选择字段 *</label>
+          <select id="sel_field" onchange="onFieldChange()"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="editorBox" style="display:none;background:#fff;padding:20px;border-radius:8px;">
+      <h3>枚举值列表 <span id="curField" style="color:#667eea;font-size:13px;"></span></h3>
+      <table style="margin-bottom:10px;">
+        <thead>
+          <tr>
+            <th style="width:70px;">顺序</th>
+            <th>枚举编码 (enum_code) *</th>
+            <th>枚举含义 (enum_label) *</th>
+            <th style="width:80px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="enumBody"></tbody>
+      </table>
+      <div style="display:flex;gap:10px;">
+        <button onclick="addRow()" class="btn btn-secondary">➕ 添加枚举</button>
+        <button onclick="saveEnums()" class="btn btn-primary">💾 保存（整体替换）</button>
+        <button onclick="onFieldChange()" class="btn btn-secondary">🔄 重新加载</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    checkLogin();
+    document.getElementById('userName').textContent =
+      JSON.parse(localStorage.getItem('user') || '{}').display_name || '';
+    function logout() { clearToken(); localStorage.clear(); location.href = '/static/index.html'; }
+
+    let TABLES = [];
+
+    async function loadTables() {
+      const r = await apiGet('/api/metadata/tables');
+      TABLES = r.data || [];
+      document.getElementById('sel_table').innerHTML =
+        TABLES.map(t => `<option value="${t.id}">${t.table_name}</option>`).join('');
+      onTableChange();
+    }
+
+    function curTable() {
+      const id = parseInt(document.getElementById('sel_table').value);
+      return TABLES.find(t => t.id === id);
+    }
+
+    function onTableChange() {
+      const t = curTable();
+      const fields = (t && t.fields) || [];
+      document.getElementById('sel_field').innerHTML =
+        fields.map(f => `<option value="${f.id}">${f.field_name} (${f.field_type})</option>`).join('');
+      onFieldChange();
+    }
+
+    function onFieldChange() {
+      const t = curTable();
+      const fid = parseInt(document.getElementById('sel_field').value);
+      if (!t || !fid) {
+        document.getElementById('editorBox').style.display = 'none';
+        return;
+      }
+      document.getElementById('editorBox').style.display = 'block';
+      const f = (t.fields || []).find(x => x.id === fid);
+      document.getElementById('curField').textContent = f ? `· ${f.field_name}` : '';
+      loadEnums(fid);
+    }
+
+    async function loadEnums(fieldId) {
+      try {
+        const r = await apiGet('/api/enums?field_id=' + fieldId);
+        const data = r.data || [];
+        document.getElementById('enumBody').innerHTML = '';
+        if (data.length === 0) { addRow(); return; }
+        data.forEach(e => addRow(e.enum_code, e.enum_label, e.ordinal));
+      } catch (e) { showMsg(e.message, true); }
+    }
+
+    function addRow(code, label, ordinal) {
+      const tb = document.getElementById('enumBody');
+      const idx = tb.rows.length + 1;
+      const tr = tb.insertRow();
+      tr.innerHTML = `
+        <td><input class="ord" type="number" value="${ordinal !== undefined ? ordinal : idx}" style="width:60px;"></td>
+        <td><input class="code" placeholder="如 1 或 vip" value="${code || ''}"></td>
+        <td><input class="label" placeholder="如 是 / VIP会员" value="${label || ''}"></td>
+        <td><button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">删</button></td>`;
+    }
+
+    async function saveEnums() {
+      const tableId = parseInt(document.getElementById('sel_table').value);
+      const fieldId = parseInt(document.getElementById('sel_field').value);
+      if (!tableId || !fieldId) { showMsg('请先选择表与字段', true); return; }
+
+      const rows = document.querySelectorAll('#enumBody tr');
+      const enums = [];
+      const seen = new Set();
+      let bad = false;
+      rows.forEach((tr, i) => {
+        const code = tr.querySelector('.code').value.trim();
+        const label = tr.querySelector('.label').value.trim();
+        const ord = parseInt(tr.querySelector('.ord').value) || (i + 1);
+        if (!code) { bad = true; return; }
+        if (seen.has(code)) { bad = true; return; }
+        seen.add(code);
+        enums.push({ table_id: tableId, field_id: fieldId, enum_code: code, enum_label: label || code, ordinal: ord });
+      });
+      if (bad) { showMsg('存在空编码或重复编码，请检查', true); return; }
+      if (enums.length === 0) { showMsg('至少填写一个枚举值', true); return; }
+
+      try {
+        await apiPost('/api/enums', { table_id: tableId, field_id: fieldId, enums });
+        showMsg(`保存成功，共 ${enums.length} 个枚举`);
+        loadEnums(fieldId);
+      } catch (e) { showMsg(e.message, true); }
+    }
+
+    (async function init() {
+      try { await loadTables(); } catch (e) { showMsg('加载失败: ' + e.message, true); }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+# ============================================================
+# 标签配置平台 唯一配置入口
+# 不引入 .env、不做多数据库分支、不做环境变量覆盖
+# ============================================================
+
+app:
+  host: 0.0.0.0
+  port: 8000
+  secret_key: "change-me-in-production-please-use-a-random-string"
+  token_expire_hours: 24
+
+database:
+  # SQLite 文件路径，相对项目根目录；程序首次启动自动创建
+  sqlite_path: "./data/tag_platform.db"
+
+# 保险行业演示数据（V1.1）：种子函数据此创建独立演示业务库
+demo_data:
+  enabled: true
+  sqlite_path: "./data/insurance_demo.db"
+
+# 演示身份切换（V1.1）：免密切换到白名单用户，仅演示环境使用
+demo_switch:
+  enabled: true
+  users: [admin, dap, tap, bap, normal]
+
+default_admin:
+  username: admin
+  password: admin123
+  display_name: "系统管理员"
+
+log:
+  level: INFO         # DEBUG / INFO / WARNING / ERROR
+  dir: "./logs"
+
+# 预置角色权限（首次启动自动创建）
+# 格式：角色编码 → 角色名 + 权限码列表
+default_roles:
+  - code: admin
+    name: "系统管理员"
+    permissions:
+      - "*"           # 通配所有权限
+  - code: data_approver
+    name: "数据接入审批人"
+    permissions:
+      - "metadata:view"
+      - "metadata:edit"
+      - "approval:view"
+      - "approval:data_node"
+  - code: tech_approver
+    name: "技术审批人"
+    permissions:
+      - "metadata:view"
+      - "approval:view"
+      - "approval:tech_node"
+  - code: biz_approver
+    name: "业务审批人"
+    permissions:
+      - "metadata:view"
+      - "approval:view"
+      - "approval:biz_node"
+  - code: user
+    name: "普通用户"
+    permissions:
+      - "metadata:view"
+      - "metadata:edit"
+      - "relation:view"
+      - "relation:edit"
+      - "enum:view"
+      - "enum:edit"
+      - "datasource:view"
+      - "tag_task:view"
+      - "tag_task:edit"

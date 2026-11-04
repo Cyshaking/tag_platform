@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>数据源管理</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <h1>🏷️ 标签配置管理平台</h1>
+    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
+  </div>
+  <div class="nav">
+    <a href="/static/dashboard.html">🏠 首页</a>
+    <a href="/static/metadata.html">📊 元数据</a>
+    <a href="/static/themes.html">🎯 业务主题</a>
+    <a href="/static/relations.html">🔗 表关系</a>
+    <a href="/static/enum_config.html">🏷️ 枚举</a>
+    <a href="/static/datasources.html">🗄️ 数据源</a>
+    <a href="/static/approvals.html">✅ 审批</a>
+    <a href="/static/tag_tasks.html">📋 标签任务</a>
+    <a href="/static/users.html">👤 用户角色</a>
+  </div>
+
+  <div class="container">
+    <h2>🗄️ 数据源管理</h2>
+    <div style="margin:15px 0;display:flex;gap:10px;">
+      <button onclick="showForm()" class="btn">➕ 新增数据源</button>
+      <button onclick="loadData()" class="btn btn-secondary">🔄 刷新</button>
+    </div>
+
+    <div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+      <h3 id="formTitle">新增数据源</h3>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
+        <div><label>名称 *</label><input id="f_name"></div>
+        <div><label>类型 *</label>
+          <select id="f_type">
+            <option value="sqlite">SQLite</option>
+            <option value="spark">Spark Thrift</option>
+          </select>
+        </div>
+        <div id="sqliteCfg" style="grid-column:1/-1;"><label>SQLite 文件路径 *</label><input id="f_db_path" placeholder="./data/example.db"></div>
+        <div id="sparkCfg" style="display:none;grid-column:1/-1;">
+          <label>Thrift JDBC 地址 *</label><input id="f_thrift_url" placeholder="jdbc:hive2://host:10015/default">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+            <div><label>用户名</label><input id="f_username" placeholder="留空则不传"></div>
+            <div><label>密码</label><input id="f_password" type="password" placeholder="不填则不更新"></div>
+          </div>
+        </div>
+        <div style="grid-column:1/-1;"><label>备注</label><input id="f_remark"></div>
+        <div style="grid-column:1/-1;"><label><input type="checkbox" id="f_enabled" checked> 启用</label></div>
+      </div>
+      <button onclick="testConn()" class="btn btn-secondary">🧪 测试连接</button>
+      <div style="margin-top:15px;display:flex;gap:10px;">
+        <button onclick="saveDS()" class="btn btn-primary">💾 保存</button>
+        <button onclick="hideForm()" class="btn btn-secondary">取消</button>
+      </div>
+    </div>
+
+    <div id="dsList"></div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    checkLogin();
+    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+
+    let editingId = null;
+
+    document.getElementById('f_type').addEventListener('change', e => {
+      document.getElementById('sqliteCfg').style.display = e.target.value==='sqlite' ? 'block' : 'none';
+      document.getElementById('sparkCfg').style.display = e.target.value==='spark' ? 'block' : 'none';
+    });
+
+    function showForm() { editingId=null; resetForm(); document.getElementById('formBox').style.display='block'; }
+    function hideForm() { document.getElementById('formBox').style.display='none'; }
+    function resetForm() {
+      ['f_name','f_db_path','f_thrift_url','f_username','f_password','f_remark'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('f_type').value='sqlite';
+      document.getElementById('f_enabled').checked=true;
+      document.getElementById('sqliteCfg').style.display='block';
+      document.getElementById('sparkCfg').style.display='none';
+      document.getElementById('formTitle').textContent='新增数据源';
+    }
+
+    function buildConfig() {
+      const t = document.getElementById('f_type').value;
+      if (t === 'sqlite') return { db_path: document.getElementById('f_db_path').value.trim() };
+      return {
+        thrift_url: document.getElementById('f_thrift_url').value.trim(),
+        username: document.getElementById('f_username').value.trim(),
+        password: document.getElementById('f_password').value.trim(),
+      };
+    }
+
+    async function testConn() {
+      const body = { ds_type: document.getElementById('f_type').value, config: buildConfig() };
+      try {
+        const r = await apiPost('/api/datasources/test-connection', body);
+        if (r.data.success) showMsg(`连接成功 (${r.data.latency_ms}ms)`);
+        else showMsg('连接失败: ' + r.data.message, true);
+      } catch(e) { showMsg(e.message, true); }
+    }
+
+    async function saveDS() {
+      const name = document.getElementById('f_name').value.trim();
+      if (!name) { showMsg('请输入名称', true); return; }
+      const body = {
+        name,
+        ds_type: document.getElementById('f_type').value,
+        config: buildConfig(),
+        is_enabled: document.getElementById('f_enabled').checked,
+        remark: document.getElementById('f_remark').value.trim(),
+      };
+      try {
+        if (editingId) { await apiPut('/api/datasources/'+editingId, body); showMsg('已更新'); }
+        else { await apiPost('/api/datasources', body); showMsg('已创建'); }
+        hideForm(); loadData();
+      } catch(e) { showMsg(e.message, true); }
+    }
+
+    async function loadData() {
+      try {
+        const r = await apiGet('/api/datasources');
+        const data = r.data || [];
+        renderTable(
+          ['ID','名称','类型','启用','配置','操作'],
+          data.map(d => [
+            d.id, d.name, d.ds_type,
+            d.is_enabled ? '✅ 启用' : '❌ 禁用',
+            d.ds_type === 'sqlite' ? 'db_path: ' + d.config.db_path :
+              'thrift: ' + (d.config.thrift_url||'') + ' ...',
+            `<button class="btn btn-secondary" onclick="toggle(${d.id},${!d.is_enabled})">${d.is_enabled?'禁用':'启用'}</button>
+             <button class="btn btn-danger" onclick="delDS(${d.id})">删除</button>`
+          ]),
+          'dsList'
+        );
+      } catch(e) { showMsg(e.message, true); }
+    }
+
+    async function toggle(id, enabled) {
+      try { await apiPost('/api/datasources/'+id+'/toggle?enabled='+enabled); loadData(); } catch(e) { showMsg(e.message, true); }
+    }
+    async function delDS(id) {
+      if (!confirm('确认删除？')) return;
+      try { await apiDelete('/api/datasources/'+id); loadData(); } catch(e) { showMsg(e.message, true); }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

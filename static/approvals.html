@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>审批工单</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div class="header"><h1>🏷️ 标签配置管理平台</h1>
+    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
+  <div class="nav">
+    <a href="/static/dashboard.html">🏠 首页</a>
+    <a href="/static/metadata.html">📊 元数据</a>
+    <a href="/static/themes.html">🎯 业务主题</a>
+    <a href="/static/relations.html">🔗 表关系</a>
+    <a href="/static/enum_config.html">🏷️ 枚举</a>
+    <a href="/static/datasources.html">🗄️ 数据源</a>
+    <a href="/static/approvals.html">✅ 审批</a>
+    <a href="/static/tag_tasks.html">📋 标签任务</a>
+    <a href="/static/users.html">👤 用户角色</a>
+  </div>
+
+  <div class="container">
+    <h2>✅ 审批工单</h2>
+    <div style="margin:15px 0;display:flex;gap:10px;">
+      <button onclick="loadList('')" class="btn btn-secondary">全部</button>
+      <button onclick="loadList('pending')" class="btn btn-secondary">待处理</button>
+      <button onclick="loadList('in_progress')" class="btn btn-secondary">进行中</button>
+      <button onclick="loadList('approved')" class="btn btn-secondary">已通过</button>
+      <button onclick="loadList('rejected')" class="btn btn-secondary">已驳回</button>
+      <button onclick="loadMyPending()" class="btn">我的待办</button>
+    </div>
+    <div id="ticketList"></div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    checkLogin();
+    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+
+    function nodeLabel(n) { return ({DATA_APPROVAL:'数据审批',TECH_APPROVAL:'技术审批',BIZ_APPROVAL:'业务审批',PASSED:'已通过',REJECTED:'已驳回'})[n]||n; }
+    function statusCls(s) { return 'status-'+s; }
+
+    async function loadList(status) {
+      try {
+        const url = '/api/approvals' + (status ? '?status='+status : '');
+        const r = await apiGet(url); render(r.data||[]);
+      } catch(e) { showMsg(e.message, true); }
+    }
+    async function loadMyPending() {
+      try { const r = await apiGet('/api/approvals?show_my_pending=true'); render(r.data||[]); }
+      catch(e) { showMsg(e.message, true); }
+    }
+
+    function render(data) {
+      if (!data.length) { document.getElementById('ticketList').innerHTML = '<p style="color:#888;padding:20px;text-align:center;">暂无工单</p>'; return; }
+      let html = '';
+      data.forEach(t => {
+        html += `<div style="background:#fff;padding:15px;border-radius:8px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div><strong>${t.title}</strong> <span style="color:#888;font-size:12px;">#${t.ticket_no}</span></div>
+            <div><span class="status ${statusCls(t.status)}">${t.status}</span>
+                 <span style="margin-left:10px;color:#555;">当前节点: ${nodeLabel(t.current_node)}</span></div>
+          </div>
+          <div style="color:#888;font-size:12px;margin-bottom:10px;">创建时间: ${t.created_at}</div>
+          <div style="margin-bottom:10px;">
+            ${t.logs.slice(-3).map(l=>`<div style="color:#666;font-size:12px;border-left:3px solid #667eea;padding-left:10px;margin:3px 0;">
+              [${l.action}] ${l.node} ${l.comment||''} (${l.created_at})</div>`).join('')}
+          </div>
+          ${t.status==='in_progress' && t.current_node!=='PASSED' && t.current_node!=='REJECTED' ? `
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn btn-primary" onclick="act(${t.id},'approve')">通过</button>
+            <button class="btn btn-danger" onclick="act(${t.id},'reject')">驳回</button>
+            <input id="cmt_${t.id}" placeholder="审批意见" style="flex:1;">
+          </div>` : ''}
+        </div>`;
+      });
+      document.getElementById('ticketList').innerHTML = html;
+    }
+
+    async function act(id, action) {
+      const cmt = document.getElementById('cmt_'+id).value;
+      try {
+        await apiPost(`/api/approvals/${id}/${action}`, { comment: cmt });
+        showMsg(action==='approve'?'已通过':'已驳回'); loadMyPending();
+      } catch(e) { showMsg(e.message, true); }
+    }
+
+    loadList('');
+  </script>
+</body>
+</html>

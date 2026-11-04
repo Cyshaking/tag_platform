@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>标签任务配置</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div class="header"><h1>🏷️ 标签配置管理平台</h1>
+    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
+  <div class="nav">
+    <a href="/static/dashboard.html">🏠 首页</a>
+    <a href="/static/metadata.html">📊 元数据</a>
+    <a href="/static/themes.html">🎯 业务主题</a>
+    <a href="/static/relations.html">🔗 表关系</a>
+    <a href="/static/enum_config.html">🏷️ 枚举</a>
+    <a href="/static/datasources.html">🗄️ 数据源</a>
+    <a href="/static/approvals.html">✅ 审批</a>
+    <a href="/static/tag_tasks.html">📋 标签任务</a>
+    <a href="/static/users.html">👤 用户角色</a>
+  </div>
+
+  <div class="container">
+    <h2>📋 标签任务配置</h2>
+    <div style="margin:15px 0;display:flex;gap:10px;">
+      <button onclick="showForm()" class="btn">➕ 新建任务</button>
+      <button onclick="loadData()" class="btn btn-secondary">🔄 刷新</button>
+    </div>
+
+    <div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+      <h3 id="formTitle">新建标签任务</h3>
+
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div><label>任务名称 *</label><input id="f_name"></div>
+        <div><label>任务模式 *</label>
+          <select id="f_mode" onchange="switchMode()">
+            <option value="FIELD">字段配置</option>
+            <option value="SQL">SQL 直配</option>
+          </select>
+        </div>
+        <div><label>业务主题 *</label><select id="f_theme" onchange="onThemeChange()"></select></div>
+        <div><label>主题表（外层主表）</label><input id="f_maintable" disabled placeholder="选择主题后自动带出"></div>
+        <div><label>标签值编码 (tag_value_code) *</label><input id="f_tag" placeholder="例：POLICY_EFFECTIVE"></div>
+        <div><label>数据源 *</label><select id="f_ds"></select></div>
+      </div>
+
+      <!-- 字段配置模式（V1.1 新结构） -->
+      <div id="fieldPanel" style="margin-top:18px;">
+
+        <h4>① 配置表（任意元数据表均可选中；第一张 = 内层子查询 FROM）</h4>
+        <div id="cfgTableList" style="margin-top:6px;"></div>
+        <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+          <select id="addCfgTable"></select>
+          <button class="btn btn-secondary" onclick="addCfgTable()">➕ 加入配置表</button>
+          <span style="color:#8a94a6;font-size:12px;">提示：至少选一张；若条件里用了某张表的字段，也必须把这张表加进来</span>
+        </div>
+
+        <h4 style="margin-top:18px;">② 判断逻辑（条件链：AND / OR 按行拼）</h4>
+        <div id="condRows" style="margin-top:6px;"></div>
+        <button class="btn btn-secondary" onclick="addCondRow()" style="margin-top:6px;">➕ 新增条件行</button>
+        <div style="margin-top:8px;color:#8a94a6;font-size:12px;">
+          行 1 无前缀；后续行必须选 AND 或 OR。无条件时后端会回退成 <code>CASE WHEN 1=1 THEN ...</code>
+        </div>
+      </div>
+
+      <!-- SQL 直配模式 -->
+      <div id="sqlPanel" style="margin-top:18px;display:none;">
+        <h4>SQL 直配</h4>
+        <textarea id="f_sql" rows="9" style="width:100%;font-family:Consolas,monospace;padding:10px;border:1px solid #d5d9e0;border-radius:6px;"
+          placeholder="仅支持单条只读 SELECT / WITH 查询，例如：&#10;SELECT policy_id, policy_no FROM policy WHERE policy_status = 'EFFECTIVE';"></textarea>
+        <div style="margin-top:8px;">
+          <button class="btn btn-secondary" onclick="validateSQL()">🧪 校验 SQL</button>
+          <span id="sqlCheckResult" style="margin-left:10px;"></span>
+        </div>
+      </div>
+
+      <div style="margin-top:15px;">
+        <button onclick="previewSQL()" class="btn btn-secondary">🔍 预览 SQL</button>
+        <button onclick="saveTask()" class="btn btn-primary">💾 保存任务</button>
+        <button onclick="hideForm()" class="btn btn-secondary">取消</button>
+      </div>
+      <div id="sqlPreview" style="margin-top:15px;"></div>
+    </div>
+
+    <div id="taskList"></div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    checkLogin();
+    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+
+    let allTables = [];       // [{id, table_name, fields:[{id,field_name,...}]}]
+    let themeTable = null;    // {table_name, table_id, fields:[...]}
+    let themeList = [];
+    let cfgTables = [];       // [{id, table_name}]  顺序重要：第一张 = 内层 FROM
+    let condRows = [];        // [{logic:null/"AND"/"OR", table_id, field_id, operator, value}]
+
+    const ALL_OPS = [
+      {v:"EQ",          l:"等于 (=)"},
+      {v:"NEQ",         l:"不等于 (<>)"},
+      {v:"CONTAINS",    l:"包含 (LIKE %x%)"},
+      {v:"NOT_CONTAINS",l:"不包含 (NOT LIKE)"},
+      {v:"STARTS_WITH", l:"开头 (LIKE x%)"},
+      {v:"ENDS_WITH",   l:"结尾 (LIKE %x)"},
+      {v:"IN",          l:"集合内 (IN)"},
+      {v:"GT",          l:"大于 (>)"},
+      {v:"LT",          l:"小于 (<)"},
+      {v:"GTE",         l:"大于等于 (>=)"},
+      {v:"LTE",         l:"小于等于 (<=)"},
+      {v:"IS_NULL",     l:"为空 (IS NULL)"},
+      {v:"IS_NOT_NULL", l:"非空 (IS NOT NULL)"},
+    ];
+    const NO_VALUE_OPS = new Set(["IS_NULL","IS_NOT_NULL"]);
+
+    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function showForm(){
+      resetForm();
+      document.getElementById('formBox').style.display='block';
+      loadThemeOpts(); loadTableOpts(); loadDSOpts();
+    }
+    function hideForm(){ document.getElementById('formBox').style.display='none'; }
+    function resetForm(){
+      ['f_name','f_tag','f_sql'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('f_mode').value='FIELD';
+      document.getElementById('sqlPreview').innerHTML='';
+      document.getElementById('sqlCheckResult').textContent='';
+      cfgTables=[]; condRows=[];
+      renderCfgTables(); renderCondRows();
+      switchMode();
+    }
+
+    function switchMode(){
+      const mode = document.getElementById('f_mode').value;
+      document.getElementById('fieldPanel').style.display = mode==='FIELD'?'block':'none';
+      document.getElementById('sqlPanel').style.display    = mode==='SQL'?'block':'none';
+    }
+
+    async function loadThemeOpts(){
+      try{
+        const r = await apiGet('/api/themes'); themeList = r.data||[];
+        const sel = document.getElementById('f_theme');
+        sel.innerHTML = '<option value="">请选择业务主题</option>' +
+          themeList.filter(t=>t.is_enabled).map(t=>`<option value="${t.id}">${esc(t.theme_name)}（主表 ${esc(t.main_table_name)}）</option>`).join('');
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function onThemeChange(){
+      const tid = document.getElementById('f_theme').value;
+      themeTable = null;
+      document.getElementById('f_maintable').value='';
+      if(!tid) return;
+      try{
+        const r = await apiGet(`/api/themes/${tid}/tables`);
+        themeTable = r.data;
+        document.getElementById('f_maintable').value = `${themeTable.table_name}（${themeTable.table_comment||''}）`;
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function loadTableOpts(){
+      try{
+        const r = await apiGet('/api/metadata/tables');
+        allTables = (r.data||[]).filter(t=>t.status==='approved');
+        // 配置表下拉（含主题表自己）
+        const sel = document.getElementById('addCfgTable');
+        sel.innerHTML = '<option value="">选择表</option>' +
+          allTables.map(t=>`<option value="${t.id}">${esc(t.table_name)}</option>`).join('');
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    // ---------- 配置表 ----------
+    function addCfgTable(){
+      const sel = document.getElementById('addCfgTable');
+      const tid = parseInt(sel.value);
+      if(!tid){ showMsg('请选择表',true); return; }
+      if(cfgTables.some(x=>x.id===tid)){ showMsg('该表已在配置列表里',true); return; }
+      const t = allTables.find(x=>x.id===tid);
+      if(!t){ showMsg('表不存在',true); return; }
+      cfgTables.push({id:t.id, table_name:t.table_name});
+      renderCfgTables(); renderCondRows();
+      sel.value='';
+    }
+    function removeCfgTable(i){
+      cfgTables.splice(i,1);
+      renderCfgTables(); renderCondRows();
+    }
+    function moveCfgTable(i,dir){
+      const j = i+dir;
+      if(j<0 || j>=cfgTables.length) return;
+      [cfgTables[i],cfgTables[j]] = [cfgTables[j],cfgTables[i]];
+      renderCfgTables(); renderCondRows();
+    }
+    function renderCfgTables(){
+      const box = document.getElementById('cfgTableList');
+      if(!cfgTables.length){ box.innerHTML='<span style="color:#8a94a6;">尚未加入配置表</span>'; return; }
+      box.innerHTML = cfgTables.map((t,i)=>
+        `<span style="background:#eef2ff;border:1px solid #d7def9;border-radius:4px;padding:4px 8px;margin-right:4px;display:inline-flex;align-items:center;gap:4px;">
+          ${i===0?'<b style="color:#2563eb;">①</b>':'<span style="color:#8a94a6;">${i+1}</span>'}
+          ${esc(t.table_name)}
+          ${i===0?'<span style="color:#2563eb;font-size:11px;">内层 FROM</span>':''}
+          ${i>0?`<a href="#" onclick="moveCfgTable(${i},-1);return false;">↑</a>`:''}
+          ${i<cfgTables.length-1?`<a href="#" onclick="moveCfgTable(${i},1);return false;">↓</a>`:''}
+          <a href="#" onclick="removeCfgTable(${i});return false;">✖</a></span>`).join('');
+    }
+
+    // ---------- 条件行 ----------
+    function addCondRow(){
+      condRows.push({ logic: condRows.length ? 'AND' : null, table_id:'', field_id:'', operator:'EQ', value:'' });
+      renderCondRows();
+    }
+    function removeCondRow(i){ condRows.splice(i,1); renderCondRows(); }
+    function renderCondRows(){
+      const box = document.getElementById('condRows');
+      if(!condRows.length){ box.innerHTML='<span style="color:#8a94a6;">尚无条件（无条件时 CASE WHEN 1=1）</span>'; return; }
+      // 表名选项
+      const cfgOpts = cfgTables.map(t=>`<option value="${t.id}">${esc(t.table_name)}</option>`).join('');
+      const html = condRows.map((c,i)=>{
+        const isFirst = i===0;
+        // 字段下拉（如果已经选了表，联动出字段）
+        let fieldOpts = '<option value="">先选表</option>';
+        if(c.table_id){
+          const t = allTables.find(x=>x.id===parseInt(c.table_id));
+          if(t) fieldOpts = '<option value="">选择字段</option>' + (t.fields||[]).map(f=>
+            `<option value="${f.id}" ${f.id===parseInt(c.field_id)?'selected':''}>${esc(f.field_name)}</option>`).join('');
+        }
+        const noVal = NO_VALUE_OPS.has(c.operator);
+        return `
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;padding:6px 10px;background:#f8f9fb;border:1px solid #e0e3e8;border-radius:4px;flex-wrap:wrap;">
+          ${isFirst
+            ? '<span style="color:#8a94a6;">行 1</span>'
+            : `<select onchange="condRows[${i}].logic=this.value">
+                 <option value="AND" ${c.logic==='AND'?'selected':''}>AND</option>
+                 <option value="OR"  ${c.logic==='OR' ?'selected':''}>OR</option>
+               </select>`}
+          <select onchange="onCondTableChange(${i},this.value)">
+            <option value="">选表</option>
+            ${cfgOpts}
+          </select>
+          <select onchange="condRows[${i}].field_id=parseInt(this.value)">
+            ${fieldOpts}
+          </select>
+          <select onchange="onCondOpChange(${i},this.value)">
+            ${ALL_OPS.map(o=>`<option value="${o.v}" ${c.operator===o.v?'selected':''}>${o.l}</option>`).join('')}
+          </select>
+          ${noVal
+            ? '<span style="color:#8a94a6;font-size:12px;">(无需值)</span>'
+            : `<input value="${esc(c.value)}" placeholder="${c.operator==='IN'?'英文逗号分隔':'值'}" style="min-width:160px;"
+                onchange="condRows[${i}].value=this.value">`}
+          <a href="#" onclick="removeCondRow(${i});return false;" style="color:#c62828;">✖</a>
+        </div>`;
+      }).join('');
+      box.innerHTML = html;
+    }
+    function onCondTableChange(i,val){
+      condRows[i].table_id = val ? parseInt(val) : '';
+      condRows[i].field_id = '';
+      renderCondRows();
+    }
+    function onCondOpChange(i,val){
+      condRows[i].operator = val;
+      if(NO_VALUE_OPS.has(val)) condRows[i].value = '';
+      renderCondRows();
+    }
+
+    // ---------- 构造后端入参 ----------
+    function buildFieldConfig(){
+      if(!cfgTables.length) throw new Error('请至少加入一张配置表');
+      const config_tables = cfgTables.map(t=>t.id);
+      const conditions = condRows.map((c,i)=>{
+        const logic = i===0 ? null : (c.logic||'AND');
+        if(!c.field_id) throw new Error(`第 ${i+1} 行条件请选择字段`);
+        const item = { logic, field_id: parseInt(c.field_id), operator: c.operator };
+        if(NO_VALUE_OPS.has(c.operator)) return item;
+        if(c.operator==='IN'){
+          const arr = (c.value||'').split(',').map(v=>v.trim()).filter(Boolean);
+          if(!arr.length) throw new Error('IN 算子至少填一个值');
+          item.values = arr;
+        } else {
+          if(c.value==='') throw new Error(`第 ${i+1} 行条件值不能为空`);
+          item.value = c.value;
+        }
+        return item;
+      });
+      return { config_tables, conditions };
+    }
+
+    function baseBody(){
+      const mode = document.getElementById('f_mode').value;
+      const body = {
+        task_name: document.getElementById('f_name').value.trim(),
+        task_mode: mode,
+        theme_id: parseInt(document.getElementById('f_theme').value),
+        tag_value_code: document.getElementById('f_tag').value.trim() || null,
+        datasource_id: parseInt(document.getElementById('f_ds').value),
+      };
+      if(mode==='FIELD') body.field_config = buildFieldConfig();
+      else body.raw_sql = document.getElementById('f_sql').value.trim();
+      return body;
+    }
+
+    async function loadDSOpts(){
+      try{
+        const r = await apiGet('/api/datasources/enabled');
+        const sel = document.getElementById('f_ds');
+        sel.innerHTML = (r.data||[]).map(d=>`<option value="${d.id}">${esc(d.name)} (${esc(d.ds_type)})</option>`).join('');
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function previewSQL(){
+      let body;
+      try { body = baseBody(); } catch(e){ showMsg(e.message,true); return; }
+      if(!body.task_name){ showMsg('请填写任务名称',true); return; }
+      if(!body.theme_id){ showMsg('请选择业务主题',true); return; }
+      try{
+        const r = await apiPost('/api/tag-tasks/preview-sql', {
+          task_mode: body.task_mode, theme_id: body.theme_id,
+          tag_value_code: body.tag_value_code || body.task_name,
+          raw_sql: body.raw_sql, field_config: body.field_config,
+        });
+        document.getElementById('sqlPreview').innerHTML = '<h4>生成的 SQL：</h4><pre>'+esc(r.data.sql)+'</pre>';
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function validateSQL(){
+      const sql = document.getElementById('f_sql').value.trim();
+      const dsid = parseInt(document.getElementById('f_ds').value);
+      const box = document.getElementById('sqlCheckResult');
+      if(!sql){ showMsg('请填写 SQL',true); return; }
+      try{
+        const r = await apiPost('/api/tag-tasks/validate-sql', { sql, datasource_id: dsid });
+        const d = r.data;
+        box.innerHTML = d.valid
+          ? `<span style="color:#1a7f37;">✔ 校验通过：${esc(d.message)}</span>`
+          : `<span style="color:#c62828;">✖ ${esc(d.message)}</span>`;
+        if(d.valid) document.getElementById('f_sql').value = d.normalized_sql;
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function saveTask(){
+      let body;
+      try { body = baseBody(); } catch(e){ showMsg(e.message,true); return; }
+      if(!body.task_name){ showMsg('请填写任务名称',true); return; }
+      if(!body.theme_id){ showMsg('请选择业务主题',true); return; }
+      if(!body.datasource_id){ showMsg('请选择数据源',true); return; }
+      if(!body.tag_value_code){ showMsg('请填写 tag_value_code',true); return; }
+      if(body.task_mode==='SQL' && !body.raw_sql){ showMsg('请填写 SQL',true); return; }
+      try{
+        await apiPost('/api/tag-tasks', body);
+        showMsg('已创建任务'); hideForm(); loadData();
+      } catch(e){ showMsg(e.message,true); }
+    }
+
+    async function loadData(){
+      try{
+        const r = await apiGet('/api/tag-tasks');
+        const data = r.data || [];
+        const themeName = id => (themeList.find(t=>t.id===id)||{}).theme_name || (id?'#'+id:'-');
+        renderTable(
+          ['ID','任务名','模式','主题','标签值','数据源','操作'],
+          data.map(t=>[
+            t.id, esc(t.task_name),
+            t.task_mode==='SQL' ? '<span style="color:#7b1fa2;">SQL 直配</span>' : '<span style="color:#1565c0;">字段配置</span>',
+            esc(t.business_theme || themeName(t.theme_id)),
+            esc(t.tag_value_code), t.datasource_id,
+            `<button class="btn btn-secondary" onclick="preview(${t.id})">SQL</button>
+             <button class="btn" onclick="execute(${t.id})">执行</button>
+             <button class="btn btn-danger" onclick="del(${t.id})">删除</button>`
+          ]),
+          'taskList'
+        );
+      } catch(e){ showMsg(e.message,true); }
+      loadThemeOpts();
+    }
+    async function preview(id){
+      const r = await apiGet('/api/tag-tasks/'+id);
+      const t = r.data;
+      alert('模式: '+(t.task_mode==='SQL'?'SQL 直配':'字段配置')+'\n\n'+t.generated_sql);
+    }
+    async function execute(id){
+      try{ await apiPost('/api/execution/submit', { tag_task_id: id }); showMsg('已提交执行'); loadData(); } catch(e){ showMsg(e.message,true); }
+    }
+    async function del(id){
+      if(!confirm('确认删除？')) return;
+      try{ await apiDelete('/api/tag-tasks/'+id); loadData(); } catch(e){ showMsg(e.message,true); }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
