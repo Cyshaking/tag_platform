@@ -27,6 +27,9 @@ class TagTask(Base):
     field_config_json = Column(Text)  # V1.1: 字段配置模式快照
     datasource_id = Column(Integer, ForeignKey("datasources.id", ondelete="RESTRICT"), nullable=False, index=True)
     generated_sql = Column(Text)  # 自动生成的 SQL 快照
+    # V1.2 新增：标签任务审批状态，执行前需 approved
+    # pending=未提交审批 / in_progress=审批中 / approved=审批通过可执行 / rejected=已驳回
+    status = Column(String(32), default="pending", nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, onupdate=datetime.utcnow)

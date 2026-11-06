@@ -18,6 +18,7 @@ from app.schemas.tag_task import (
     PreviewSQLRequest, TagTaskCreate, TagTaskUpdate, ValidateSQLRequest,
 )
 from app.services.tag_task_service import TagTaskService
+from app.services.approval_service import ApprovalService  # V1.2 新增
 
 router = APIRouter(prefix="/api/tag-tasks", tags=["tag_tasks"])
 
@@ -29,7 +30,9 @@ def _serialize(t) -> dict:
         "main_table_id": t.main_table_id, "main_field_id": t.main_field_id,
         "tag_value_code": t.tag_value_code, "raw_sql": t.raw_sql,
         "field_config_json": t.field_config_json, "datasource_id": t.datasource_id,
-        "generated_sql": t.generated_sql, "created_by": t.created_by,
+        "generated_sql": t.generated_sql,
+        "status": getattr(t, 'status', 'pending'),  # V1.2：审批状态
+        "created_by": t.created_by,
         "created_at": t.created_at.isoformat() if t.created_at else None,
         "updated_at": t.updated_at.isoformat() if t.updated_at else None,
     }
@@ -127,3 +130,15 @@ def delete_task(task_id: int,
     svc = TagTaskService(db)
     svc.delete_task(task_id=task_id, operator_id=current_user.id)
     return ApiResponse()
+
+
+# V1.2 新增：提交标签任务审批
+@router.post("/{task_id}/submit-approval")
+def submit_task_approval(task_id: int, title: Optional[str] = None,
+                         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    approval_svc = ApprovalService(db)
+    ticket = approval_svc.submit_ticket(
+        target_id=task_id, ticket_type="TAG_TASK",
+        title=title, submitter_id=current_user.id,
+    )
+    return ApiResponse(data={"ticket_id": ticket.id, "ticket_no": ticket.ticket_no})

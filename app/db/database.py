@@ -106,6 +106,8 @@ def _migrate_additive_columns() -> None:
         ("theme_id", "INTEGER"),
         ("raw_sql", "TEXT"),
         ("field_config_json", "TEXT"),
+        # V1.2 新增：标签任务审批状态
+        ("status", "VARCHAR(32) NOT NULL DEFAULT 'pending'"),
     ]
     engine = get_engine()
     with engine.begin() as conn:

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -85,7 +85,18 @@
     <div id="taskList"></div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <!-- V1.2.1 执行结果 Modal -->
+  <div id="execModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;" onclick="if(event.target===this)closeExecModal()">
+    <div style="background:#fff;border-radius:8px;padding:20px;width:min(720px,92vw);max-height:85vh;overflow-y:auto;margin:8vh auto;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <h3 style="margin:0;">📤 执行结果</h3>
+        <button onclick="closeExecModal()" style="border:none;background:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div id="execModalBody"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js?v=121"></script>
   <script>
     checkLogin();
     document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -214,10 +225,11 @@
     function renderCondRows(){
       const box = document.getElementById('condRows');
       if(!condRows.length){ box.innerHTML='<span style="color:#8a94a6;">尚无条件（无条件时 CASE WHEN 1=1）</span>'; return; }
-      // 表名选项
-      const cfgOpts = cfgTables.map(t=>`<option value="${t.id}">${esc(t.table_name)}</option>`).join('');
       const html = condRows.map((c,i)=>{
         const isFirst = i===0;
+        // V1.2.1: 把 cfgOpts 生成移进 map 内部，按 c.table_id 加 selected 回显
+        const cfgOpts = cfgTables.map(t=>
+          `<option value="${t.id}" ${String(c.table_id)===String(t.id)?'selected':''}>${esc(t.table_name)}</option>`).join('');
         // 字段下拉（如果已经选了表，联动出字段）
         let fieldOpts = '<option value="">先选表</option>';
         if(c.table_id){
@@ -352,35 +364,98 @@
       } catch(e){ showMsg(e.message,true); }
     }
 
+    // V1.2 审批状态 → 标签 + 颜色
+    const STATUS_LABEL = {
+      pending:    '<span style="color:#8a94a6;">未提交</span>',
+      in_progress:'<span style="color:#b06000;">审批中</span>',
+      approved:   '<span style="color:#1a7f37;">✓ 已通过</span>',
+      rejected:   '<span style="color:#c62828;">✗ 已驳回</span>',
+    };
+
     async function loadData(){
       try{
         const r = await apiGet('/api/tag-tasks');
         const data = r.data || [];
         const themeName = id => (themeList.find(t=>t.id===id)||{}).theme_name || (id?'#'+id:'-');
         renderTable(
-          ['ID','任务名','模式','主题','标签值','数据源','操作'],
-          data.map(t=>[
-            t.id, esc(t.task_name),
-            t.task_mode==='SQL' ? '<span style="color:#7b1fa2;">SQL 直配</span>' : '<span style="color:#1565c0;">字段配置</span>',
-            esc(t.business_theme || themeName(t.theme_id)),
-            esc(t.tag_value_code), t.datasource_id,
-            `<button class="btn btn-secondary" onclick="preview(${t.id})">SQL</button>
-             <button class="btn" onclick="execute(${t.id})">执行</button>
-             <button class="btn btn-danger" onclick="del(${t.id})">删除</button>`
-          ]),
+          ['ID','任务名','模式','主题','标签值','数据源','状态','操作'],
+          data.map(t=>{
+            const st = t.status || 'pending';
+            const canSubmit = st !== 'in_progress' && st !== 'approved';
+            const canExec   = st === 'approved';
+            return [
+              t.id, esc(t.task_name),
+              t.task_mode==='SQL' ? '<span style="color:#7b1fa2;">SQL 直配</span>' : '<span style="color:#1565c0;">字段配置</span>',
+              esc(t.business_theme || themeName(t.theme_id)),
+              esc(t.tag_value_code), t.datasource_id,
+              STATUS_LABEL[st] || st,
+              `<button class="btn btn-secondary" onclick="preview(${t.id})">SQL</button>
+               ${canSubmit ? `<button class="btn" onclick="submitApproval(${t.id})">📋 提交审批</button>` : ''}
+               <button class="btn" ${canExec?'':'disabled style="opacity:.5;cursor:not-allowed;"'} onclick="execute(${t.id})">
+                 ${canExec?'▶ 执行':'执行(需审批)'}
+               </button>
+               <button class="btn btn-danger" onclick="del(${t.id})">删除</button>`
+            ];
+          }),
           'taskList'
         );
       } catch(e){ showMsg(e.message,true); }
       loadThemeOpts();
     }
+    // V1.2 提交审批
+    async function submitApproval(id){
+      try{
+        const r = await apiPost(`/api/tag-tasks/${id}/submit-approval`);
+        showMsg('已提交审批工单 #'+r.data.ticket_no); loadData();
+      } catch(e){ showMsg(e.message,true); }
+    }
     async function preview(id){
       const r = await apiGet('/api/tag-tasks/'+id);
       const t = r.data;
-      alert('模式: '+(t.task_mode==='SQL'?'SQL 直配':'字段配置')+'\n\n'+t.generated_sql);
+      alert('模式: '+(t.task_mode==='SQL'?'SQL 直配':'字段配置')+'\n审批状态: '+(t.status||'pending')+'\n\n'+t.generated_sql);
     }
+    // V1.2.1: 执行后弹出结果 Modal
     async function execute(id){
-      try{ await apiPost('/api/execution/submit', { tag_task_id: id }); showMsg('已提交执行'); loadData(); } catch(e){ showMsg(e.message,true); }
+      try{
+        const r = await apiPost('/api/execution/submit', { tag_task_id: id });
+        const rec = r.data;
+        // SQLite 是同步执行的，Spark mock 也同步返回 success
+        // 直接从 rec 渲染结果
+        showExecResult(rec);
+        loadData();
+      } catch(e){ showMsg(e.message,true); }
     }
+    function showExecResult(rec){
+      const ok = rec.status === 'success';
+      const icon = ok ? '✅' : '❌';
+      const color = ok ? '#1a7f37' : '#c62828';
+      const start = rec.started_at ? new Date(rec.started_at).toLocaleString() : '-';
+      const end = rec.finished_at ? new Date(rec.finished_at).toLocaleString() : '-';
+      const dur = (rec.started_at && rec.finished_at)
+        ? ((new Date(rec.finished_at) - new Date(rec.started_at))/1000).toFixed(2) + 's'
+        : '-';
+      const body = `
+        <div style="display:flex;align-items:center;gap:10px;font-size:16px;margin-bottom:14px;">
+          <span style="font-size:28px;">${icon}</span>
+          <span style="font-weight:600;color:${color};">${ok?'执行成功':'执行失败'}</span>
+          <span style="color:#6b7280;font-size:13px;">(${rec.ds_type} 数据源)</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
+          <tr><td style="padding:6px 8px;background:#f3f4f6;width:120px;">数据源</td><td style="padding:6px 8px;">${rec.ds_type} ${rec.external_task_id?`· 任务ID: ${rec.external_task_id}`:''}</td></tr>
+          <tr><td style="padding:6px 8px;background:#f3f4f6;">开始时间</td><td style="padding:6px 8px;">${start}</td></tr>
+          <tr><td style="padding:6px 8px;background:#f3f4f6;">结束时间</td><td style="padding:6px 8px;">${end}</td></tr>
+          <tr><td style="padding:6px 8px;background:#f3f4f6;">耗时</td><td style="padding:6px 8px;">${dur}</td></tr>
+          ${rec.error_message ? `<tr><td style="padding:6px 8px;background:#fef2f2;color:#c62828;">错误</td><td style="padding:6px 8px;color:#c62828;">${esc(rec.error_message)}</td></tr>` : ''}
+        </table>
+        ${rec.execute_log ? `<details style="margin-bottom:10px;"><summary style="cursor:pointer;color:#2563eb;font-size:13px;">📋 执行日志</summary>
+          <pre style="background:#1e293b;color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:200px;overflow:auto;">${esc(rec.execute_log)}</pre></details>` : ''}
+        <details><summary style="cursor:pointer;color:#2563eb;font-size:13px;">📄 提交的 SQL</summary>
+          <pre style="background:#1e293b;color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:240px;overflow:auto;">${esc(rec.submitted_sql)}</pre>
+        </details>`;
+      document.getElementById('execModalBody').innerHTML = body;
+      document.getElementById('execModal').style.display = 'block';
+    }
+    function closeExecModal(){ document.getElementById('execModal').style.display = 'none'; }
     async function del(id){
       if(!confirm('确认删除？')) return;
       try{ await apiDelete('/api/tag-tasks/'+id); loadData(); } catch(e){ showMsg(e.message,true); }

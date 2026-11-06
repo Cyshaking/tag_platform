@@ -16,8 +16,8 @@ from app.services.approval_service import ApprovalService
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
 
-def _serialize_ticket(t) -> dict:
-    return {
+def _serialize_ticket(t, db=None) -> dict:
+    data = {
         "id": t.id, "ticket_no": t.ticket_no, "ticket_type": t.ticket_type,
         "target_id": t.target_id, "title": t.title, "submitter_id": t.submitter_id,
         "current_node": t.current_node, "status": t.status,
@@ -29,6 +29,34 @@ def _serialize_ticket(t) -> dict:
             "created_at": l.created_at.isoformat() if l.created_at else None,
         } for l in t.logs],
     }
+    # V1.2.1: 补充目标详情
+    if db is not None:
+        try:
+            if t.ticket_type == "TAG_TASK":
+                from app.db.models.tag_task import TagTask
+                task = db.get(TagTask, t.target_id)
+                if task:
+                    data["target_info"] = {
+                        "task_name": task.task_name,
+                        "task_mode": task.task_mode,
+                        "business_theme": task.business_theme,
+                        "tag_value_code": task.tag_value_code,
+                        "status": task.status,
+                        "generated_sql": task.generated_sql,
+                    }
+            elif t.ticket_type == "META_DATA":
+                from app.db.models.metadata import MetaTable
+                table = db.get(MetaTable, t.target_id)
+                if table:
+                    data["target_info"] = {
+                        "table_name": table.table_name,
+                        "table_comment": table.table_comment,
+                        "status": table.status,
+                        "field_count": len(table.fields) if table.fields else 0,
+                    }
+        except Exception:
+            pass
+    return data
 
 
 @router.get("")
@@ -37,7 +65,7 @@ def list_tickets(status: Optional[str] = None, show_my_pending: bool = False,
     svc = ApprovalService(db)
     tickets = svc.list_tickets(status=status, current_user_id=current_user.id,
                                show_my_pending=show_my_pending)
-    return ApiResponse(data=[_serialize_ticket(t) for t in tickets])
+    return ApiResponse(data=[_serialize_ticket(t, db) for t in tickets])
 
 
 @router.get("/{ticket_id}")
@@ -46,7 +74,7 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
     ticket = svc.get_ticket(ticket_id)
     if not ticket:
         return ApiResponse(code=40400, message="工单不存在")
-    return ApiResponse(data=_serialize_ticket(ticket))
+    return ApiResponse(data=_serialize_ticket(ticket, db))
 
 
 @router.post("/submit")

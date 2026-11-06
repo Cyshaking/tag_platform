@@ -29,6 +29,22 @@ def _enabled_ds(client) -> dict:
     return {d["ds_type"]: d for d in client.get("/api/datasources/enabled").json()["data"]}
 
 
+def _quick_approve(client, auth_headers, tag_task_id: int) -> None:
+    """V1.2 辅助：快速三级审批通过一个标签任务"""
+    r = client.post(f"/api/tag-tasks/{tag_task_id}/submit-approval", headers=auth_headers)
+    ticket_id = r.json()["data"]["ticket_id"]
+    for role in ["dap", "tap", "bap"]:
+        r = client.post("/api/auth/switch", headers=auth_headers, json={"username": role})
+        token = r.json()["data"]["access_token"]
+        h = {"Authorization": f"Bearer {token}"}
+        client.post(f"/api/approvals/{ticket_id}/approve", headers=h, json={"comment": "ok"})
+    # 切回 admin 拿到原始 token
+    r = client.post("/api/auth/switch", headers=h, json={"username": "admin"})
+    token = r.json()["data"]["access_token"]
+    auth_headers.clear()
+    auth_headers["Authorization"] = f"Bearer {token}"
+
+
 def _policy_field_config(client, headers) -> dict:
     """
     新结构：选 policy + person_customer 两张配置表，
@@ -134,6 +150,8 @@ class TestFieldMode:
         assert r["code"] == 0
         task_id = r["data"]["id"]
 
+        _quick_approve(client, auth_headers, task_id)
+
         r = client.post("/api/execution/submit",
                         json={"tag_task_id": task_id}, headers=auth_headers).json()
         assert r["code"] == 0
@@ -162,6 +180,8 @@ class TestSQLMode:
         detail = client.get(f"/api/tag-tasks/{task_id}").json()["data"]
         assert detail["task_mode"] == "SQL"
         assert detail["raw_sql"] == detail["generated_sql"]
+
+        _quick_approve(client, auth_headers, task_id)
 
         r = client.post("/api/execution/submit",
                         json={"tag_task_id": task_id}, headers=auth_headers).json()

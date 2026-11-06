@@ -19,7 +19,7 @@ from app.services.datasource_service import DatasourceService
 from app.engines.base_engine import BaseEngine, TaskStatusInfo
 from app.engines.sqlite_engine import SqliteEngine
 from app.engines.spark_thrift_engine import SparkThriftEngine
-from app.utils.exceptions import BusinessException, ERR_NOT_FOUND, ERR_DS_DISABLED, ERR_TAG_SQL_EMPTY
+from app.utils.exceptions import BusinessException, ERR_NOT_FOUND, ERR_DS_DISABLED, ERR_TAG_SQL_EMPTY, ERR_APPROVE_STATE
 
 
 # ds_type → 引擎类
@@ -56,6 +56,19 @@ class ExecutionService(BaseService):
             raise BusinessException(ERR_NOT_FOUND, f"标签任务 {tag_task_id} 不存在")
         if not task.generated_sql:
             raise BusinessException(ERR_TAG_SQL_EMPTY, f"标签任务 '{task.task_name}' 未生成 SQL")
+
+        # V1.2：执行审批门禁 — 标签任务必须审批通过才能执行
+        if task.status != "approved":
+            _status_labels = {
+                "pending": "未提交审批",
+                "in_progress": "审批中",
+                "rejected": "已驳回",
+            }
+            label = _status_labels.get(task.status, task.status)
+            raise BusinessException(
+                ERR_APPROVE_STATE,
+                f"标签任务 '{task.task_name}' 审批状态为「{label}」，需审批通过后方可执行",
+            )
 
         # 2. 确定数据源
         effective_ds_id = datasource_id or task.datasource_id

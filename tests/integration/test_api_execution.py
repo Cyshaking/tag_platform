@@ -44,6 +44,25 @@ class TestExecutionAPI:
         assert r.json()["data"]["generated_sql"]
         task_id = r.json()["data"]["id"]
 
+        # V1.2：执行前需要审批通过
+        # 提交审批
+        r = client.post(f"/api/tag-tasks/{task_id}/submit-approval", headers=auth_headers)
+        assert r.json()["code"] == 0
+        ticket_id = r.json()["data"]["ticket_id"]
+
+        # 三级审批：切换角色依次通过
+        for role in ["dap", "tap", "bap"]:
+            r = client.post("/api/auth/switch", headers=auth_headers, json={"username": role})
+            token = r.json()["data"]["access_token"]
+            role_headers = {"Authorization": f"Bearer {token}"}
+            r = client.post(f"/api/approvals/{ticket_id}/approve", headers=role_headers, json={"comment": "ok"})
+            assert r.json()["code"] == 0
+
+        # 切回 admin
+        r = client.post("/api/auth/switch", headers=role_headers, json={"username": "admin"})
+        token = r.json()["data"]["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
         # 执行（sqlite :memory: 里表不存在 → 失败是预期）
         r = client.post("/api/execution/submit", json={"tag_task_id": task_id}, headers=auth_headers)
         assert r.json()["code"] == 0

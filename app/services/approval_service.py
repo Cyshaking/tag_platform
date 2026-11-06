@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.db.models.approval import ApprovalTicket, ApprovalLog
 from app.db.models.user import User, Role, UserRole
 from app.db.models.metadata import MetaTable
+from app.db.models.tag_task import TagTask  # V1.2 新增
 from app.services.base import BaseService
 from app.utils.exceptions import BusinessException, ERR_NOT_FOUND, ERR_APPROVE_STATE, ERR_APPROVE_ROLE
 
@@ -68,7 +69,7 @@ class ApprovalService(BaseService):
     # ======================================================================
     def submit_ticket(self, target_id: int, ticket_type: str = "META_DATA",
                       title: Optional[str] = None, submitter_id: Optional[int] = None) -> ApprovalTicket:
-        # 校验目标（当前只支持 META_DATA）
+        # 校验目标
         if ticket_type == "META_DATA":
             table = self.db.get(MetaTable, target_id)
             if not table:
@@ -85,6 +86,26 @@ class ApprovalService(BaseService):
                 raise BusinessException(ERR_APPROVE_STATE, f"该表已有进行中的工单 #{existing.ticket_no}")
 
             auto_title = title or f"元数据接入审批：{table.table_name}"
+
+        elif ticket_type == "TAG_TASK":  # V1.2 新增
+            task = self.db.get(TagTask, target_id)
+            if not task:
+                raise BusinessException(ERR_NOT_FOUND, f"标签任务 {target_id} 不存在")
+            # 不允许重复提交
+            existing = self.db.execute(
+                select(ApprovalTicket).where(
+                    ApprovalTicket.ticket_type == "TAG_TASK",
+                    ApprovalTicket.target_id == target_id,
+                    ApprovalTicket.status.in_(["pending", "in_progress"]),
+                )
+            ).scalar_one_or_none()
+            if existing:
+                raise BusinessException(ERR_APPROVE_STATE, f"该标签任务已有进行中的工单 #{existing.ticket_no}")
+
+            auto_title = title or f"标签任务审批：{task.task_name}"
+            # 提交审批时把 tag_task 状态置为审批中
+            task.status = "in_progress"
+
         else:
             raise BusinessException(ERR_APPROVE_STATE, f"不支持的工单类型: {ticket_type}")
 
@@ -170,7 +191,7 @@ class ApprovalService(BaseService):
                 ticket.current_node = NODE_PASSED
                 ticket.status = "approved"
 
-                # 关联元数据表的状态也更新
+                # V1.2：联动更新关联对象状态
                 if ticket.ticket_type == "META_DATA":
                     meta_service = None  # 避免循环 import
                     from app.services.metadata_service import MetadataService
@@ -179,11 +200,22 @@ class ApprovalService(BaseService):
                         meta_svc.set_table_status(ticket.target_id, "approved")
                     except Exception:
                         pass
+                elif ticket.ticket_type == "TAG_TASK":
+                    # 审批通过 → 标签任务可执行
+                    task = self.db.get(TagTask, ticket.target_id)
+                    if task:
+                        task.status = "approved"
 
         elif action == "reject":
             # 驳回：停留在当前节点，工单状态置 rejected
             ticket.status = "rejected"
             # 节点不变（停留在当前）
+
+            # V1.2：TAG_TASK 驳回 → 置为 rejected 不可执行
+            if ticket.ticket_type == "TAG_TASK":
+                task = self.db.get(TagTask, ticket.target_id)
+                if task:
+                    task.status = "rejected"
 
         else:
             raise BusinessException(ERR_APPROVE_STATE, f"非法审批动作: {action}")

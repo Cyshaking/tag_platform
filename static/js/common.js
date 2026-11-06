@@ -24,7 +24,14 @@ async function api(method, path, body) {
   const data = await resp.json();
   if (data.code && data.code !== 0 && data.code !== 200) {
     if (data.code === 40100) { clearToken(); window.location.href = '/static/index.html'; }
-    throw new Error(data.message || '请求失败');
+    // V1.2.1: 把后端 data.data 数组中的详细校验错误拼进来
+    let msg = data.message || '请求失败';
+    if (data.data && Array.isArray(data.data) && data.data.length) {
+      // 简化 FastAPI 的字段路径（去掉 body. 前缀）
+      const details = data.data.map(d => String(d).replace(/^body\./, ''));
+      msg += '：' + details.join('；');
+    }
+    throw new Error(msg);
   }
   return data;
 }
@@ -92,10 +99,12 @@ function initIdentitySwitcher() {
   const sel = document.createElement('select');
   sel.id = 'identitySelect';
   sel.title = '演示环境身份切换';
-  sel.style.cssText = 'margin-right:12px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.7);' +
-    'background:rgba(255,255,255,.16);color:#fff;font-size:13px;outline:none;cursor:pointer;';
+  sel.style.cssText = 'margin-right:12px;padding:4px 8px;border-radius:4px;border:1px solid #cbd5e1;' +
+    'background:#fff;color:#1f2937;font-size:13px;outline:none;cursor:pointer;' +
+    'appearance:auto;';
+  // option 也必须深色，否则下拉选项在某些浏览器仍显示白色
   sel.innerHTML = DEMO_USERS.map(u =>
-    `<option value="${u.username}" ${u.username === current ? 'selected' : ''}>${u.name}（${u.username}）</option>`
+    `<option value="${u.username}" ${u.username === current ? 'selected' : ''} style="background:#fff;color:#1f2937;">${u.name}（${u.username}）</option>`
   ).join('');
   sel.onchange = () => {
     switchIdentity(sel.value).catch(err => {

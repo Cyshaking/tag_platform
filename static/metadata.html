@@ -1,9 +1,24 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <title>元数据接入</title>
   <link rel="stylesheet" href="/static/js/../css/main.css">
+  <style>
+    /* V1.2 字段详情弹窗 */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; display:none; align-items:center; justify-content:center; }
+    .modal-box { background:#fff; border-radius:8px; padding:24px; width:min(800px, 92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+    .modal-box h3 { margin:0 0 12px; font-size:18px; }
+    .modal-close { float:right; cursor:pointer; font-size:22px; color:#888; border:none; background:none; }
+    .modal-close:hover { color:#333; }
+    .modal-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+    .modal-table th { background:#f0f4f8; padding:8px; text-align:left; border:1px solid #ddd; }
+    .modal-table td { padding:6px 8px; border:1px solid #eee; }
+    .modal-table tr:hover { background:#fafafa; }
+    .pk-tag { color:#fff; background:#e74c3c; padding:2px 6px; border-radius:3px; font-size:11px; }
+    .link-btn { color:#2563eb; cursor:pointer; text-decoration:underline; border:none; background:none; font-size:14px; padding:0; }
+    .link-btn:hover { color:#1d4ed8; }
+  </style>
 </head>
 <body>
   <div class="header">
@@ -54,7 +69,16 @@
     <div id="tableList"></div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <!-- V1.2 字段详情弹窗 -->
+  <div class="modal-overlay" id="fieldModal" onclick="if(event.target===this) closeFieldModal()">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeFieldModal()">✕</button>
+      <h3 id="fieldModalTitle">字段详情</h3>
+      <div id="fieldModalContent"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js?v=121"></script>
   <script>
     checkLogin();
     document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -82,12 +106,62 @@
         renderTable(
           ['ID','表名','注释','状态','字段数','操作'],
           data.map(t => [
-            t.id, t.table_name, t.table_comment||'-', t.status, t.fields? t.fields.length:0,
-            `<button class="btn btn-secondary" onclick="delTable(${t.id})">删除</button>`
+            t.id,
+            `<button class="link-btn" onclick="showFields(${t.id})">${t.table_name}</button>`,  // V1.2 表名可点击
+            t.table_comment||'-',
+            t.status,
+            t.fields? t.fields.length:0,
+            `<button class="btn btn-secondary" onclick="delTable(${t.id})">删除</button>
+             <button class="btn btn-secondary" onclick="showFields(${t.id})">字段</button>`
           ]),
           'tableList'
         );
       } catch(e) { showMsg(e.message, true); }
+    }
+    // V1.2 显示字段详情弹窗
+    let _allTables = [];  // 缓存表列表
+    async function showFields(tableId) {
+      // 优先用已缓存的数据（list 接口已返回 fields）
+      let table = _allTables.find(t => t.id === tableId);
+      if (!table) {
+        const r = await apiGet('/api/metadata/tables/' + tableId);
+        table = r.data;
+      }
+      if (!table) return;
+
+      document.getElementById('fieldModalTitle').textContent =
+        `📋 ${table.table_name} — 字段详情（${table.table_comment || ''}）`;
+
+      const fields = table.fields || [];
+      let html = `<p style="color:#888;margin:8px 0 14px;">共 ${fields.length} 个字段 · 状态: ${table.status}</p>`;
+      if (fields.length === 0) {
+        html += `<p style="color:#999;padding:20px;text-align:center;">暂无字段</p>`;
+      } else {
+        html += `<table class="modal-table"><thead><tr>
+          <th style="width:40px;">#</th>
+          <th>字段名</th>
+          <th style="width:110px;">类型</th>
+          <th>注释</th>
+          <th style="width:60px;">主键</th>
+          <th style="width:60px;">可空</th>
+        </tr></thead><tbody>`;
+        fields.forEach((f, i) => {
+          html += `<tr>
+            <td>${f.ordinal_position || i+1}</td>
+            <td><code>${f.field_name}</code></td>
+            <td>${f.field_type}</td>
+            <td>${f.field_comment || '-'}</td>
+            <td>${f.is_primary_key ? '<span class="pk-tag">PK</span>' : '-'}</td>
+            <td>${f.is_nullable ? 'YES' : 'NO'}</td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      document.getElementById('fieldModalContent').innerHTML = html;
+      document.getElementById('fieldModal').style.display = 'flex';
+    }
+    function closeFieldModal() {
+      document.getElementById('fieldModal').style.display = 'none';
     }
     async function saveTable() {
       const name = document.getElementById('f_table_name').value.trim();
@@ -136,6 +210,13 @@
       } catch(e) { showMsg('上传失败: '+e.message, true); }
       input.value='';
     }
+    // 缓存完整表列表（带 fields）
+    const _origLoadData = loadData;
+    loadData = async function() {
+      const r = await apiGet('/api/metadata/tables');
+      _allTables = r.data || [];
+      return _origLoadData();
+    };
 
     loadData();
   </script>
