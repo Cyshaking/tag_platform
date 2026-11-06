@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>标签管理配置平台演示系统 - 执行记录</title>
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="header"><h1>标签管理配置平台演示系统</h1>
+<div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
+<div class="nav">
+<a href="/static/dashboard.html">首页</a>
+<a href="/static/metadata.html">元数据</a>
+<a href="/static/themes.html">业务主题</a>
+<a href="/static/relations.html">表关系</a>
+<a href="/static/enum_config.html">枚举</a>
+<a href="/static/datasources.html">数据源</a>
+<a href="/static/approvals.html">审批</a>
+<a href="/static/tag_tasks.html">标签任务</a>
+<a href="/static/task_records.html" class="active">执行记录</a>
+<a href="/static/users.html" data-perm="admin:only">用户角色</a>
+</div>
+
+<div class="container">
+<h2>执行记录</h2>
+
+<!-- 筛选区 -->
+<div style="margin:15px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+  <input id="filterTaskId" type="number" placeholder="任务 ID" style="width:100px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;">
+  <select id="filterStatus" style="padding:6px 10px;border:1px solid var(--line);border-radius:4px;">
+    <option value="">全部状态</option>
+    <option value="pending">pending</option>
+    <option value="running">running</option>
+    <option value="success">success</option>
+    <option value="failed">failed</option>
+  </select>
+  <button onclick="loadList()" class="btn btn-secondary">查询</button>
+  <button onclick="resetFilter()" class="btn btn-secondary">重置</button>
+  <span id="totalInfo" style="margin-left:auto;color:var(--ink-500);font-size:13px;"></span>
+</div>
+
+<div id="recordList"></div>
+</div>
+
+<script src="/static/js/common.js?v=143"></script>
+<script>
+checkLogin();
+document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const STATUS_COLOR = {
+  pending: '#b06000', running: 'var(--navy-600)',
+  success: 'var(--ok)', failed: 'var(--danger)',
+};
+const STATUS_LABEL = {
+  pending: '等待中', running: '执行中',
+  success: '成功', failed: '失败',
+};
+
+function resetFilter() {
+  document.getElementById('filterTaskId').value = '';
+  document.getElementById('filterStatus').value = '';
+  loadList();
+}
+
+async function loadList() {
+  try {
+    const taskId = document.getElementById('filterTaskId').value.trim();
+    const status = document.getElementById('filterStatus').value.trim();
+    const params = new URLSearchParams({ limit: '200' });
+    if (taskId) params.set('tag_task_id', taskId);
+    if (status) params.set('status', status);
+    const r = await apiGet('/api/execution/records?' + params.toString());
+    render(r.data || []);
+  } catch(e) { showMsg(e.message, true); }
+}
+
+function render(data) {
+  document.getElementById('totalInfo').textContent = `共 ${data.length} 条`;
+  if (!data.length) {
+    document.getElementById('recordList').innerHTML =
+      '<p style="color:var(--ink-500);padding:40px;text-align:center;">暂无执行记录</p>';
+    return;
+  }
+  let html = '';
+  data.forEach(r => {
+    const duration = r.started_at && r.finished_at
+      ? Math.round((new Date(r.finished_at) - new Date(r.started_at)) / 1000) + 's'
+      : (r.execute_log && r.execute_log.includes('耗时')
+          ? (r.execute_log.match(/耗时\s*(\d+)ms/)||[])[1] + 'ms' || '-'
+          : '-');
+    const statusColor = STATUS_COLOR[r.status] || '#666';
+    const statusLabel = STATUS_LABEL[r.status] || r.status;
+
+    html += `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);">
+<div style="display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:#374151;margin-bottom:6px;">
+  <span><b>记录 #${esc(r.id)}</b></span>
+  <span>任务 ID: ${esc(r.tag_task_id)}</span>
+  <span>数据源 ID: ${esc(r.datasource_id)} (${esc(r.ds_type)})</span>
+  <span style="color:${statusColor};font-weight:600;">状态: ${statusLabel}</span>
+  <span>耗时: ${esc(duration)}</span>
+  <span style="color:var(--ink-500);">创建: ${esc(r.created_at||'-')}</span>
+</div>
+
+<details>
+  <summary style="cursor:pointer;color:var(--navy-600);font-size:12px;margin-top:4px;">查看执行 SQL</summary>
+  <pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:200px;overflow:auto;">${esc(r.submitted_sql)}</pre>
+</details>
+
+${r.execute_log ? `<details open>
+  <summary style="cursor:pointer;color:var(--navy-600);font-size:12px;margin-top:6px;">执行日志</summary>
+  <pre style="background:#f8fafc;border:1px solid var(--line);padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:150px;overflow:auto;color:#374151;">${esc(r.execute_log)}</pre>
+</details>` : ''}
+
+${r.error_message ? `<details open>
+  <summary style="cursor:pointer;color:var(--danger);font-size:12px;margin-top:6px;">⚠️ 错误详情</summary>
+  <pre style="background:#fef2f2;border:1px solid #fca5a5;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:250px;overflow:auto;color:#991b1b;">${esc(r.error_message)}</pre>
+</details>` : ''}
+
+<div style="display:flex;gap:8px;margin-top:8px;">
+  ${r.finished_at ? `<span style="color:var(--ink-500);font-size:11px;">完成: ${esc(r.finished_at)}</span>` : ''}
+</div>
+</div>`;
+  });
+  document.getElementById('recordList').innerHTML = html;
+}
+
+loadList();
+</script>

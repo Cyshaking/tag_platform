@@ -89,6 +89,9 @@ class UserService(BaseService):
         # 不允许删除自己
         if user.id == operator_id:
             raise BusinessException(ERR_BAD_REQUEST, "不能删除当前登录用户")
+        # V1.4.3 例外 (c)：admin 账号受保护，不可删除
+        if user.username == "admin":
+            raise BusinessException(ERR_BAD_REQUEST, "admin 账号受保护，不可删除")
         self.db.delete(user)
         self.db.commit()
         self._log_info(f"删除用户 {user.username}", operator_id)

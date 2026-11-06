@@ -23,6 +23,24 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.utils.exceptions import BusinessException, ERR_SYSTEM
 
 
+def _write_system_log(level: str, module: str, message: str, user_id: int | None = None) -> None:
+    """V1.4.3 例外 (d)：业务异常/参数异常统一写 system_logs，独立 Session 避免污染主事务"""
+    try:
+        from app.db.database import get_session_factory
+        from app.db.models.system_log import SystemLog
+        factory = get_session_factory()
+        with factory() as _db:
+            _db.add(SystemLog(
+                level=level,
+                module=module,
+                message=message[:500],
+                user_id=user_id,
+            ))
+            _db.commit()
+    except Exception:
+        pass  # 日志写失败不能让主流程崩溃
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="标签配置平台 API",
@@ -35,6 +53,14 @@ def create_app() -> FastAPI:
     # ==================== 全局异常处理器 ====================
     @app.exception_handler(BusinessException)
     async def _handle_biz(request: Request, exc: BusinessException):
+        # V1.4.3 例外 (d)：业务异常写入 system_logs
+        user_id = getattr(getattr(request.state, "current_user", None), "id", None)
+        _write_system_log(
+            level="WARN",
+            module="api",
+            message=f"BusinessException code={exc.code}: {exc.message}",
+            user_id=user_id,
+        )
         return JSONResponse(
             status_code=200,  # 业务异常用 200 + code 区分
             content={"code": exc.code, "message": exc.message, "data": exc.data},
@@ -47,6 +73,14 @@ def create_app() -> FastAPI:
         for err in exc.errors():
             loc = ".".join(str(x) for x in err.get("loc", []))
             errors.append(f"{loc}: {err.get('msg')}")
+        # V1.4.3 例外 (d)：参数校验异常写入 system_logs
+        user_id = getattr(getattr(request.state, "current_user", None), "id", None)
+        _write_system_log(
+            level="WARN",
+            module="validation",
+            message=f"RequestValidationError: {'; '.join(errors)}",
+            user_id=user_id,
+        )
         return JSONResponse(
             status_code=200,
             content={"code": 40001, "message": "参数校验失败", "data": errors},
@@ -102,6 +136,7 @@ def create_app() -> FastAPI:
     from app.routers.datasources import router as datasources_router
     from app.routers.tag_tasks import router as tag_tasks_router
     from app.routers.execution import router as execution_router
+    from app.routers.system_logs import router as system_logs_router  # V1.4.3 新增
 
     app.include_router(auth_router)
     app.include_router(users_router)
@@ -113,6 +148,7 @@ def create_app() -> FastAPI:
     app.include_router(datasources_router)
     app.include_router(tag_tasks_router)
     app.include_router(execution_router)
+    app.include_router(system_logs_router)  # V1.4.3
 
     # ==================== 静态文件 ====================
     static_dir = Path(__file__).resolve().parent.parent / "static"

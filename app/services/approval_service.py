@@ -215,6 +215,15 @@ class ApprovalService(BaseService):
             ticket.status = "rejected"
             # 节点不变（停留在当前）
 
+            # V1.4.3 例外 (b)：元数据任务驳回时，meta_tables 置 rejected
+            if ticket.ticket_type == "META_DATA":
+                from app.services.metadata_service import MetadataService
+                meta_svc = MetadataService(self.db)
+                try:
+                    meta_svc.set_table_status(ticket.target_id, "rejected")
+                except Exception:
+                    pass
+
             # V1.2：TAG_TASK 驳回 → 置为 rejected 不可执行
             if ticket.ticket_type == "TAG_TASK":
                 task = self.db.get(TagTask, ticket.target_id)

@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import json
 import time
+import traceback
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import BackgroundTasks
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.db.models.tag_task import TagTask, TaskExecuteRecord
@@ -193,8 +194,9 @@ class ExecutionService(BaseService):
                 record.error_message = status.error
         except Exception as e:
             record.status = "failed"
-            record.error_message = str(e)
-            record.execute_log = f"执行异常: {e}"
+            # V1.4.3：完整 traceback 写入 error_message，便于排查
+            record.error_message = traceback.format_exc()
+            record.execute_log = f"执行异常 {type(e).__name__}: {e}\n{traceback.format_exc()}"
         finally:
             record.finished_at = datetime.utcnow()
             self.db.commit()

@@ -157,12 +157,14 @@ class TagTaskService(BaseService):
             task.datasource_id = datasource_id
 
         generator = SQLGenerator(self.db)
+        sql_changed = False  # V1.4.3：追踪 SQL 相关字段是否变更
         if task.task_mode == "SQL" and raw_sql is not None:
             result = SQLValidator(self.db).validate(raw_sql, task.datasource_id)
             if not result["valid"]:
                 raise BusinessException(ERR_TAG_SQL_EMPTY, result["message"])
             task.raw_sql = result["normalized_sql"]
             task.generated_sql = result["normalized_sql"]
+            sql_changed = True
         elif task.task_mode == "FIELD" and field_config is not None:
             task.field_config_json = json.dumps(field_config, ensure_ascii=False)
             task.generated_sql = generator.generate_by_fields(
@@ -170,6 +172,7 @@ class TagTaskService(BaseService):
                 field_config=field_config,
                 tag_value_code=task.tag_value_code,
             )
+            sql_changed = True
         elif tag_value_code is not None or datasource_id is None:
             # 标签值变更：按模式重新生成 SQL
             if task.task_mode == "SQL":
@@ -187,6 +190,11 @@ class TagTaskService(BaseService):
                     main_field_id=task.main_field_id,
                     tag_value_code=task.tag_value_code,
                 )
+            sql_changed = True
+
+        # V1.4.3 例外 (a)：修改 raw_sql / field_config / generated_sql 后重置为 pending，让执行门禁自然拦截
+        if sql_changed and task.status in ("approved", "rejected"):
+            task.status = "pending"
 
         task.updated_at = datetime.utcnow()
         self.db.commit()

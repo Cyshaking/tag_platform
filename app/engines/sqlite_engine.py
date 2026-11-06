@@ -53,21 +53,30 @@ class SqliteEngine(BaseEngine):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
-            # 支持多语句：用 executescript 不行（它不返回结果集），这里用 execute 单语句
+            sql_upper = sql.lstrip().upper()
+            is_select = sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")
+
             cursor.execute(sql)
             conn.commit()
+
+            # V1.4.3：rowcount 可靠获取
+            # SQLite cursor.rowcount 对 SELECT 返回 -1（不可靠），需要 len(fetchall())
+            # 对 DML (INSERT/UPDATE/DELETE) rowcount 是可靠的
+            if is_select:
+                rows = cursor.fetchall()
+                row_count = len(rows)
+            else:
+                row_count = cursor.rowcount
         except Exception as e:
             conn.close()
-            # 异常向上抛出，由 base_engine 包装
             raise
         # 同步保存结果到一个内部字典（get_task_status 读取）
         duration_ms = int((time.time() - start) * 1000)
         task_id = f"sqlite_{int(time.time() * 1000)}"
-        # 简单执行：同步完成直接返回
         self._last_result = TaskStatusInfo(
             status=self.STATUS_SUCCESS,
-            log=f"执行成功，耗时 {duration_ms}ms",
-            row_count=cursor.rowcount,
+            log=f"执行成功，耗时 {duration_ms}ms，行数 {row_count}",
+            row_count=row_count,
             duration_ms=duration_ms,
         )
         conn.close()

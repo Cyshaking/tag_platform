@@ -76,10 +76,39 @@ class RelationService(BaseService):
 
         if relation_type is not None:
             rel.relation_type = relation_type.upper()
+
+        # V1.4.3 例外 (e)：字段变更时补三项校验
         if left_field_id is not None:
+            field = self.db.get(MetaField, left_field_id)
+            if not field or field.table_id != rel.left_table_id:
+                raise BusinessException(ERR_VALIDATION, f"左字段 {left_field_id} 不属于左表 {rel.left_table_id}")
             rel.left_field_id = left_field_id
+
         if right_field_id is not None:
+            field = self.db.get(MetaField, right_field_id)
+            if not field or field.table_id != rel.right_table_id:
+                raise BusinessException(ERR_VALIDATION, f"右字段 {right_field_id} 不属于右表 {rel.right_table_id}")
             rel.right_field_id = right_field_id
+
+        # 自关联校验：左表 == 右表 且 字段变更到同字段
+        if left_field_id is not None and right_field_id is not None:
+            if rel.left_table_id == rel.right_table_id and rel.left_field_id == rel.right_field_id:
+                raise BusinessException(ERR_VALIDATION, "不允许同表自关联")
+
+        # 重复关系校验：排除自身
+        if left_field_id is not None or right_field_id is not None:
+            existing = self.db.execute(
+                select(TableRelation).where(
+                    TableRelation.left_table_id == rel.left_table_id,
+                    TableRelation.left_field_id == rel.left_field_id,
+                    TableRelation.right_table_id == rel.right_table_id,
+                    TableRelation.right_field_id == rel.right_field_id,
+                    TableRelation.id != relation_id,
+                )
+            ).scalar_one_or_none()
+            if existing:
+                raise BusinessException(ERR_VALIDATION, "该关联规则已存在")
+
         rel.updated_at = datetime.utcnow()
 
         self.db.commit()

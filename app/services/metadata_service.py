@@ -73,11 +73,13 @@ class MetadataService(BaseService):
         if not table:
             raise BusinessException(ERR_META_NOT_FOUND, f"表 {table_id} 不存在")
 
-        if table_comment is not None:
+        changed = False
+        if table_comment is not None and table.table_comment != table_comment:
             table.table_comment = table_comment
-        if datasource_id is not None:
+            changed = True
+        if datasource_id is not None and table.datasource_id != datasource_id:
             table.datasource_id = datasource_id
-        table.updated_at = datetime.utcnow()
+            changed = True
 
         # 整体替换字段列表
         if fields is not None:
@@ -93,7 +95,14 @@ class MetadataService(BaseService):
                     is_nullable=f.get("is_nullable", True),
                     ordinal_position=f.get("ordinal_position", i + 1),
                 ))
+            changed = True
 
+        # V1.4.3 例外 (a)：已审批/已驳回的表，内容变更后重置为 pending
+        # （仅改名称不重置，但 update_table 无 table_name 参数，此处略过）
+        if changed and table.status in ("approved", "rejected"):
+            table.status = "pending"
+
+        table.updated_at = datetime.utcnow()
         self.db.commit()
         self._log_info(f"更新表 {table.table_name}", operator_id)
         return table
