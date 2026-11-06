@@ -30,7 +30,7 @@
 - **后端**：FastAPI + SQLAlchemy + Pydantic + SQLite
 - **前端**：纯静态 HTML / CSS / JS（无框架依赖）
 - **执行引擎**：基于 DB-API 的可插拔引擎（SQLite 内置，Spark Thrift 预留）
-- **测试**：pytest（154 用例：unit + integration + engines）
+- **测试**：pytest（unit / integration / engines 三层覆盖，实际用例数以 pytest 输出为准）
 
 ---
 
@@ -63,7 +63,7 @@ tag_platform/
 │   ├── dependencies.py         # 依赖注入（DB Session / 当前用户）
 │   ├── db/
 │   │   ├── database.py          # SQLAlchemy engine / SessionLocal / Base
-│   │   ├── models/             # ORM 模型（9 个业务表）
+│   │   ├── models/             # ORM 模型（14 张表：users roles user_roles meta_tables meta_fields table_relations field_enums approval_tickets approval_logs datasources business_themes tag_tasks task_execute_records system_logs）
 │   │   └── seed_data.py        # 保险演示数据（幂等初始化）
 │   ├── engines/                # SQL 执行引擎（base / sqlite / spark）
 │   ├── routers/                # REST API 路由（10 个 router）
@@ -77,6 +77,8 @@ tag_platform/
 ---
 
 ## 快速开始
+
+> **运行环境**：要求 Python 3.10+
 
 ### 1. 安装依赖
 
@@ -108,8 +110,12 @@ python run.py
 | 用户名 | 密码 | 角色 |
 |--------|------|------|
 | `admin` | `admin123` | 系统管理员（可切换身份） |
+| `dap` | `123456` | 数据审批人（data_approver） |
+| `tap` | `123456` | 技术审批人（tech_approver） |
+| `bap` | `123456` | 业务审批人（biz_approver） |
+| `normal` | `123456` | 普通用户（user） |
 
-管理员登录后可通过「设置」按钮切换为数据审批人 / 技术审批人 / 业务审批人角色进行权限测试。
+管理员登录后可通过「设置」按钮切换为其他角色账号进行权限测试。切换行为仅在 `config.yaml demo_switch.enabled=true` 时可用，生产环境必须关闭。
 
 ### 运行测试
 
@@ -117,7 +123,7 @@ python run.py
 python -m pytest tests/ -q
 ```
 
-当前基线：**154 passed**
+实际用例数量与执行结果以 pytest 输出为准，不写死基线。
 
 ---
 
@@ -185,6 +191,20 @@ self._gen_serial_no(ModelClass, "PREFIX")
 ### V1.0 — 基础模块
 
 - 元数据 CRUD / 数据源 CRUD / 表关系 CRUD / 权限管理
+
+---
+
+## 提交材料索引
+
+| 文件 | 路径 | 说明 |
+|------|------|------|
+| 需求规格说明书 | `docs/tag_platform_需求规格说明书.docx` | 功能需求、接口清单、业务流程、验收标准 |
+| 方案设计文档 | `docs/tag_platform_方案设计文档.docx` | 架构设计、ER 图、14 张表结构、核心模块实现、配置设计 |
+| 测试与验收报告 | `docs/tag_platform_测试与验收报告.docx` | 各版本测试覆盖、问题清单、最终验收结论 |
+| 冒烟测试脚本 | `scripts/smoke_test.py` | API 端到端冒烟测试（临时 DB，失败真实退出非 0） |
+| 源码 | `app/` | FastAPI 应用（router/service/schemas/db/engines/utils） |
+| 前端 | `static/` | 原生 HTML/CSS/JS 静态资源（10 个页面） |
+| pytest 用例 | `tests/` | unit / integration / engines / e2e 四层测试 |
 
 ---
 

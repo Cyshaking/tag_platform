@@ -32,3 +32,11 @@ htmlcov/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# IDE 临时目录 / 平台残留
+.trae-html-share-packages/
+NUL
+
+# 文档中间产物与备份
+docs/_*.txt
+docs/*_backup.docx
