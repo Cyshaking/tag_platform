@@ -19,6 +19,7 @@ class BusinessTheme(Base):
     __tablename__ = "business_themes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     theme_code = Column(String(64), unique=True, nullable=False, index=True)
     theme_name = Column(String(128), nullable=False)
     main_table_id = Column(Integer, ForeignKey("meta_tables.id", ondelete="RESTRICT"),

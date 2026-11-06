@@ -23,7 +23,7 @@ def list_users(db: Session = Depends(get_db)):
     users = svc.list_users()
     return ApiResponse(data=[
         {
-            "id": u.id, "username": u.username, "display_name": u.display_name,
+            "id": u.id, "serial_no": u.serial_no, "username": u.username, "display_name": u.display_name,
             "is_active": u.is_active,
             "roles": [{"id": r.id, "code": r.code, "name": r.name} for r in u.roles],
         } for u in users

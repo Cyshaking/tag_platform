@@ -61,6 +61,7 @@ class RelationService(BaseService):
             relation_type=relation_type.upper(),
             created_by=created_by,
         )
+        rel.serial_no = self._gen_serial_no(TableRelation, "REL")  # V1.4.3
         self.db.add(rel)
         self.db.commit()
         self._log_info(f"创建表关联 {left_table_id}.{left_field_id} ↔ {right_table_id}.{right_field_id}", created_by)

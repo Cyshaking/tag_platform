@@ -1,131 +1,159 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>审批工单</title>
-  <link rel="stylesheet" href="/static/css/main.css">
+<meta charset="UTF-8">
+<title>复深蓝标签管理平台演示系统 - 审批工单</title>
+<link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
-  <div class="header"><h1>🏷️ 标签配置管理平台</h1>
-    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
-  <div class="nav">
-    <a href="/static/dashboard.html">🏠 首页</a>
-    <a href="/static/metadata.html">📊 元数据</a>
-    <a href="/static/themes.html">🎯 业务主题</a>
-    <a href="/static/relations.html">🔗 表关系</a>
-    <a href="/static/enum_config.html">🏷️ 枚举</a>
-    <a href="/static/datasources.html">🗄️ 数据源</a>
-    <a href="/static/approvals.html">✅ 审批</a>
-    <a href="/static/tag_tasks.html">📋 标签任务</a>
-    <a href="/static/users.html">👤 用户角色</a>
-  </div>
+<div class="header"><h1>复深蓝标签管理平台演示系统</h1>
+<div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
+<div class="nav">
+<a href="/static/dashboard.html">首页</a>
+<a href="/static/metadata.html">元数据</a>
+<a href="/static/themes.html">业务主题</a>
+<a href="/static/relations.html">表关系</a>
+<a href="/static/enum_config.html">枚举</a>
+<a href="/static/datasources.html">数据源</a>
+<a href="/static/approvals.html">审批</a>
+<a href="/static/tag_tasks.html">标签任务</a>
+<a href="/static/users.html" data-perm="admin:only">用户角色</a>
+</div>
 
-  <div class="container">
-    <h2>✅ 审批工单</h2>
-    <div style="margin:15px 0;display:flex;gap:10px;">
-      <button onclick="loadList('')" class="btn btn-secondary">全部</button>
-      <button onclick="loadList('pending')" class="btn btn-secondary">待处理</button>
-      <button onclick="loadList('in_progress')" class="btn btn-secondary">进行中</button>
-      <button onclick="loadList('approved')" class="btn btn-secondary">已通过</button>
-      <button onclick="loadList('rejected')" class="btn btn-secondary">已驳回</button>
-      <button onclick="loadMyPending()" class="btn">我的待办</button>
-    </div>
-    <div id="ticketList"></div>
-  </div>
+<div class="container">
+<h2>审批工单</h2>
+<div style="margin:15px 0;display:flex;gap:10px;">
+<button onclick="loadList('')" class="btn btn-secondary">全部</button>
+<button onclick="loadList('in_progress')" class="btn btn-secondary">进行中</button>
+<button onclick="loadList('approved')" class="btn btn-secondary">已通过</button>
+<button onclick="loadList('rejected')" class="btn btn-secondary">已驳回</button>
+<button onclick="loadMyPending()" class="btn">我的待办</button>
+</div>
+<div id="ticketList"></div>
+</div>
 
-  <script src="/static/js/common.js?v=121"></script>
-  <script>
-    checkLogin();
-    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
-    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
-    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+<script src="/static/js/common.js?v=143"></script>
+<script>
+ checkLogin();
+ document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+ function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function nodeLabel(n) { return ({DATA_APPROVAL:'数据审批',TECH_APPROVAL:'技术审批',BIZ_APPROVAL:'业务审批',PASSED:'已通过',REJECTED:'已驳回'})[n]||n; }
-    function statusCls(s) { return 'status-'+s; }
-    // V1.2 工单类型
-    function typeLabel(t) { return t==='TAG_TASK'
-      ? '<span style="background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:4px;font-size:11px;">🏷️ 标签任务</span>'
-      : '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:4px;font-size:11px;">📊 元数据</span>'; }
+ function nodeLabel(n) { return ({DATA_APPROVAL:'数据审批',TECH_APPROVAL:'技术审批',BIZ_APPROVAL:'业务审批',PASSED:'已通过',REJECTED:'已驳回'})[n]||n; }
+ function statusCls(s) { return 'status-'+s; }
+ function typeLabel(t) { return t==='TAG_TASK'
+ ? '<span style="background:#eaf1fa;color:var(--navy-800);padding:2px 8px;border-radius:4px;font-size:11px;"> 标签任务</span>'
+ : '<span style="background:#f0fdf4;color:var(--ok);padding:2px 8px;border-radius:4px;font-size:11px;"> 元数据</span>'; }
 
-    async function loadList(status) {
-      try {
-        const url = '/api/approvals' + (status ? '?status='+status : '');
-        const r = await apiGet(url); render(r.data||[]);
-      } catch(e) { showMsg(e.message, true); }
-    }
-    async function loadMyPending() {
-      try { const r = await apiGet('/api/approvals?show_my_pending=true'); render(r.data||[]); }
-      catch(e) { showMsg(e.message, true); }
-    }
+ async function loadList(status) {
+ try {
+ const url = '/api/approvals' + (status ? '?status='+status : '');
+ const r = await apiGet(url); render(r.data||[]);
+ } catch(e) { showMsg(e.message, true); }
+ }
+ async function loadMyPending() {
+ try { const r = await apiGet('/api/approvals?show_my_pending=true'); render(r.data||[]); }
+ catch(e) { showMsg(e.message, true); }
+ }
 
-    function render(data) {
-      if (!data.length) { document.getElementById('ticketList').innerHTML = '<p style="color:#888;padding:20px;text-align:center;">暂无工单</p>'; return; }
-      let html = '';
-      data.forEach(t => {
-        // V1.2.1: 渲染目标详情
-        let targetHtml = '';
-        if (t.target_info) {
-          const ti = t.target_info;
-          if (t.ticket_type === 'TAG_TASK') {
-            const modeLbl = ti.task_mode === 'SQL' ? 'SQL 直配' : '字段配置';
-            const statusMap = {pending:'未提交',in_progress:'审批中',approved:'✓已通过',rejected:'✗已驳回'};
-            const statusColor = ti.status==='approved'?'#1a7f37':ti.status==='rejected'?'#c62828':'#b06000';
-            targetHtml = `<div style="background:#f8f9fb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
-              <div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
-                <span>任务名: <b>${esc(ti.task_name)}</b></span>
-                <span>模式: ${modeLbl}</span>
-                <span>主题: ${esc(ti.business_theme||'-')}</span>
-                <span>标签值: <code>${esc(ti.tag_value_code)}</code></span>
-                <span>状态: <span style="color:${statusColor}">${statusMap[ti.status]||ti.status}</span></span>
-              </div>
-              ${ti.generated_sql ? `<details style="margin-top:6px;"><summary style="cursor:pointer;color:#2563eb;font-size:12px;">📄 生成的 SQL 预览</summary>
-                <pre style="background:#1e293b;color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap;">${esc(ti.generated_sql)}</pre>
-              </details>` : ''}
-            </div>`;
-          } else {
-            targetHtml = `<div style="background:#f8f9fb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
-              <div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
-                <span>表名: <code>${esc(ti.table_name)}</code></span>
-                <span>注释: ${esc(ti.table_comment||'-')}</span>
-                <span>字段数: ${ti.field_count}</span>
-                <span>状态: ${esc(ti.status)}</span>
-              </div>
-            </div>`;
-          }
-        }
+ function render(data) {
+ if (!data.length) { document.getElementById('ticketList').innerHTML = '<p style="color:var(--ink-500);padding:20px;text-align:center;">暂无工单</p>'; return; }
+ let html = '';
+ data.forEach(t => {
+ // V1.2.1: 渲染目标详情（完整保留）
+ let targetHtml = '';
+ if (t.target_info) {
+ const ti = t.target_info;
+ if (t.ticket_type === 'TAG_TASK') {
+ const modeLbl = ti.task_mode === 'SQL' ? 'SQL 直配' : '字段配置';
+ const statusMap = {pending:'未提交',in_progress:'审批中',approved:'已通过',rejected:'已驳回'};
+ const statusColor = ti.status==='approved'?'var(--ok)':ti.status==='rejected'?'var(--danger)':'#b06000';
+ targetHtml = `<div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
+<div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
+<span>任务名:<b>${esc(ti.task_name)}</b></span>
+<span>模式: ${modeLbl}</span>
+<span>主题: ${esc(ti.business_theme||'-')}</span>
+<span>标签值:<code>${esc(ti.tag_value_code)}</code></span>
+<span>状态:<span style="color:${statusColor}">${statusMap[ti.status]||ti.status}</span></span>
+</div>
+ ${ti.generated_sql ? `<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--navy-600);font-size:12px;"> 生成的 SQL 预览</summary>
+<pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap;">${esc(ti.generated_sql)}</pre>
+</details>` : ''}
+</div>`;
+ } else {
+ targetHtml = `<div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
+<div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
+<span>表名:<code>${esc(ti.table_name)}</code></span>
+<span>注释: ${esc(ti.table_comment||'-')}</span>
+<span>字段数: ${ti.field_count}</span>
+<span>状态: ${esc(ti.status)}</span>
+</div>
+</div>`;
+ }
+ }
 
-        html += `<div style="background:#fff;padding:15px;border-radius:8px;margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div><strong>${esc(t.title)}</strong> ${typeLabel(t.ticket_type)} <span style="color:#888;font-size:12px;">#${t.ticket_no}</span></div>
-            <div><span class="status ${statusCls(t.status)}">${t.status}</span>
-                 <span style="margin-left:10px;color:#555;">当前节点: ${nodeLabel(t.current_node)}</span></div>
-          </div>
-          ${targetHtml}
-          <div style="color:#888;font-size:12px;margin-bottom:10px;">创建时间: ${t.created_at}</div>
-          <div style="margin-bottom:10px;">
-            ${t.logs.slice(-3).map(l=>`<div style="color:#666;font-size:12px;border-left:3px solid #667eea;padding-left:10px;margin:3px 0;">
-              [${l.action}] ${l.node} ${esc(l.comment||'')} (${l.created_at})</div>`).join('')}
-          </div>
-          ${t.status==='in_progress' && t.current_node!=='PASSED' && t.current_node!=='REJECTED' ? `
-          <div style="display:flex;gap:10px;align-items:center;">
-            <button class="btn btn-primary" onclick="act(${t.id},'approve')">通过</button>
-            <button class="btn btn-danger" onclick="act(${t.id},'reject')">驳回</button>
-            <input id="cmt_${t.id}" placeholder="审批意见" style="flex:1;">
-          </div>` : ''}
-        </div>`;
-      });
-      document.getElementById('ticketList').innerHTML = html;
-    }
+ // V1.3: 审批按钮区域（根据角色决定是否显示）
+ let actionHtml = '';
+ if (t.status==='in_progress' && t.current_node!=='PASSED' && t.current_node!=='REJECTED') {
+ const roleCodes = (() => { try { return (JSON.parse(localStorage.getItem('user')||'{}').roles||[]).map(r=>r.code); } catch(e) { return []; } })();
+ const isAdmin = roleCodes.includes('admin');
+ const NODE_ROLE = { DATA_APPROVAL:'data_approver', TECH_APPROVAL:'tech_approver', BIZ_APPROVAL:'biz_approver' };
+ const requiredRole = NODE_ROLE[t.current_node];
+ const canApprove = isAdmin || (requiredRole && roleCodes.includes(requiredRole));
+ if (!canApprove) {
+ actionHtml = `<div style="display:flex;gap:10px;align-items:center;color:#9ca3af;font-size:12px;">
+ 当前节点需要「${({data_approver:'数据审批人',tech_approver:'技术审批人',biz_approver:'业务审批人'})[requiredRole]||requiredRole}」角色才能审批
+</div>`;
+ } else {
+ actionHtml = `<div style="display:flex;gap:10px;align-items:center;">
+<button class="btn btn-primary" onclick="act(${t.id},'approve')">通过</button>
+<button class="btn btn-danger" onclick="act(${t.id},'reject')">驳回</button>
+<input id="cmt_${t.id}" placeholder="审批意见" style="flex:1;">
+</div>`;
+ }
+ }
 
-    async function act(id, action) {
-      const cmt = document.getElementById('cmt_'+id).value;
-      try {
-        await apiPost(`/api/approvals/${id}/${action}`, { comment: cmt });
-        showMsg(action==='approve'?'已通过':'已驳回'); loadMyPending();
-      } catch(e) { showMsg(e.message, true); }
-    }
+ // V1.4.3: 可折叠卡片 — 默认折叠（status!=='in_progress' 的），进行中的默认展开
+ const defaultOpen = (t.status === 'in_progress');
 
-    loadList('');
-  </script>
+ html += `<div class="ticket-card ${defaultOpen ? '' : 'collapsed'}" data-ticket="${t.id}">
+<div class="ticket-head" onclick="toggleTicket(this.closest('.ticket-card'))">
+<div class="ticket-title">${esc(t.title)} ${typeLabel(t.ticket_type)}<span class="ticket-no">#${t.ticket_no}</span></div>
+<div class="ticket-meta">
+<span class="status ${statusCls(t.status)}">${t.status}</span>
+<span style="color:var(--ink-500);font-size:12px;">当前节点: ${nodeLabel(t.current_node)}</span>
+<span class="ticket-chev">▼</span>
+</div>
+</div>
+<div class="ticket-body">
+${targetHtml}
+<div style="color:var(--ink-500);font-size:12px;margin-bottom:10px;">创建时间: ${t.created_at}</div>
+<div style="margin-bottom:10px;">
+ ${t.logs.slice(-3).map(l=>`<div style="color:var(--ink-600);font-size:12px;border-left:3px solid var(--navy-500);padding-left:10px;margin:3px 0;">
+ [${l.action}] ${l.node} ${esc(l.comment||'')} (${l.created_at})</div>`).join('')}
+</div>
+${actionHtml}
+</div>
+</div>`;
+ });
+ document.getElementById('ticketList').innerHTML = html;
+ }
+
+ // V1.4.3: 折叠/展开切换
+ function toggleTicket(card) {
+ card.classList.toggle('collapsed');
+ }
+
+ async function act(id, action) {
+ const cmtEl = document.getElementById('cmt_'+id);
+ const cmt = cmtEl ? cmtEl.value : '';
+ try {
+ await apiPost(`/api/approvals/${id}/${action}`, { comment: cmt });
+ showMsg(action==='approve'?'已通过':'已驳回'); loadMyPending();
+ } catch(e) { showMsg(e.message, true); }
+ }
+
+ loadList('');
+</script>
 </body>
 </html>

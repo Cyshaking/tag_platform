@@ -1,224 +1,224 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>元数据接入</title>
-  <link rel="stylesheet" href="/static/js/../css/main.css">
-  <style>
-    /* V1.2 字段详情弹窗 */
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; display:none; align-items:center; justify-content:center; }
-    .modal-box { background:#fff; border-radius:8px; padding:24px; width:min(800px, 92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
-    .modal-box h3 { margin:0 0 12px; font-size:18px; }
-    .modal-close { float:right; cursor:pointer; font-size:22px; color:#888; border:none; background:none; }
-    .modal-close:hover { color:#333; }
-    .modal-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-    .modal-table th { background:#f0f4f8; padding:8px; text-align:left; border:1px solid #ddd; }
-    .modal-table td { padding:6px 8px; border:1px solid #eee; }
-    .modal-table tr:hover { background:#fafafa; }
-    .pk-tag { color:#fff; background:#e74c3c; padding:2px 6px; border-radius:3px; font-size:11px; }
-    .link-btn { color:#2563eb; cursor:pointer; text-decoration:underline; border:none; background:none; font-size:14px; padding:0; }
-    .link-btn:hover { color:#1d4ed8; }
-  </style>
+<meta charset="UTF-8">
+<title>复深蓝标签管理平台演示系统 - 元数据接入</title>
+<link rel="stylesheet" href="/static/js/../css/main.css">
+<style>
+ /* V1.2 字段详情弹窗 */
+ .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; display:none; align-items:center; justify-content:center; }
+ .modal-box { background:#fff; border-radius:8px; padding:24px; width:min(800px, 92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+ .modal-box h3 { margin:0 0 12px; font-size:18px; }
+ .modal-close { float:right; cursor:pointer; font-size:22px; color:var(--ink-500); border:none; background:none; }
+ .modal-close:hover { color:#333; }
+ .modal-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+ .modal-table th { background:#f4f8fd; padding:8px; text-align:left; border:1px solid var(--line); }
+ .modal-table td { padding:6px 8px; border:1px solid #eee; }
+ .modal-table tr:hover { background:#fafafa; }
+ .pk-tag { color:#fff; background:var(--danger); padding:2px 6px; border-radius:3px; font-size:11px; }
+ .link-btn { color:var(--navy-600); cursor:pointer; text-decoration:underline; border:none; background:none; font-size:14px; padding:0; }
+ .link-btn:hover { color:#1d4ed8; }
+</style>
 </head>
 <body>
-  <div class="header">
-    <h1>🏷️ 标签配置管理平台</h1>
-    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
-  </div>
-  <div class="nav">
-    <a href="/static/dashboard.html">🏠 首页</a>
-    <a href="/static/metadata.html">📊 元数据</a>
-    <a href="/static/themes.html">🎯 业务主题</a>
-    <a href="/static/relations.html">🔗 表关系</a>
-    <a href="/static/enum_config.html">🏷️ 枚举</a>
-    <a href="/static/datasources.html">🗄️ 数据源</a>
-    <a href="/static/approvals.html">✅ 审批</a>
-    <a href="/static/tag_tasks.html">📋 标签任务</a>
-    <a href="/static/users.html">👤 用户角色</a>
-  </div>
+<div class="header">
+<h1>复深蓝标签管理平台演示系统</h1>
+<div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
+</div>
+<div class="nav">
+<a href="/static/dashboard.html">首页</a>
+<a href="/static/metadata.html">元数据</a>
+<a href="/static/themes.html">业务主题</a>
+<a href="/static/relations.html">表关系</a>
+<a href="/static/enum_config.html">枚举</a>
+<a href="/static/datasources.html">数据源</a>
+<a href="/static/approvals.html">审批</a>
+<a href="/static/tag_tasks.html">标签任务</a>
+<a href="/static/users.html" data-perm="admin:only">用户角色</a>
+</div>
 
-  <div class="container">
-    <h2>📊 元数据接入</h2>
-    <div style="margin:15px 0;display:flex;gap:10px;flex-wrap:wrap;">
-      <button onclick="showForm()" class="btn">➕ 新建表</button>
-      <button onclick="document.getElementById('fileInput').click()" class="btn btn-secondary">📥 Excel 导入</button>
-      <button onclick="downloadTemplate()" class="btn btn-secondary">📄 下载模板</button>
-      <button onclick="loadData()" class="btn btn-secondary">🔄 刷新</button>
-      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="importExcel(this)">
-    </div>
+<div class="container">
+<h2>元数据接入</h2>
+<div style="margin:15px 0;display:flex;gap:10px;flex-wrap:wrap;">
+<button onclick="showForm()" class="btn">新建表</button>
+<button onclick="document.getElementById('fileInput').click()" class="btn btn-secondary">Excel 导入</button>
+<button onclick="downloadTemplate()" class="btn btn-secondary">下载模板</button>
+<button onclick="loadData()" class="btn btn-secondary">刷新</button>
+<input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="importExcel(this)">
+</div>
 
-    <!-- 新建表单 -->
-    <div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
-      <h3 id="formTitle">新建表</h3>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
-        <div><label>表名 *</label><input id="f_table_name" placeholder="如 user_info"></div>
-        <div><label>表注释</label><input id="f_table_comment" placeholder="如 用户基础信息"></div>
-      </div>
-      <h4>字段列表</h4>
-      <table id="fieldsTable" border="1" style="border-collapse:collapse;width:100%;font-size:13px;margin-bottom:10px;">
-        <thead><tr style="background:#f0f4f8;"><th>字段名*</th><th>类型*</th><th>注释</th><th>主键</th><th>可空</th><th>顺序</th><th>操作</th></tr></thead>
-        <tbody id="fieldsBody"></tbody>
-      </table>
-      <button onclick="addField()" class="btn btn-secondary">➕ 添加字段</button>
-      <div style="margin-top:15px;display:flex;gap:10px;">
-        <button onclick="saveTable()" class="btn btn-primary">💾 保存</button>
-        <button onclick="hideForm()" class="btn btn-secondary">取消</button>
-      </div>
-    </div>
+<!-- 新建表单 -->
+<div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<h3 id="formTitle">新建表</h3>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
+<div><label>表名 *</label><input id="f_table_name" placeholder="如 user_info"></div>
+<div><label>表注释</label><input id="f_table_comment" placeholder="如 用户基础信息"></div>
+</div>
+<h4>字段列表</h4>
+<table id="fieldsTable" border="1" style="border-collapse:collapse;width:100%;font-size:13px;margin-bottom:10px;">
+<thead><tr><th>字段名*</th><th>类型*</th><th>注释</th><th>主键</th><th>可空</th><th>顺序</th><th>操作</th></tr></thead>
+<tbody id="fieldsBody"></tbody>
+</table>
+<button onclick="addField()" class="btn btn-secondary">添加字段</button>
+<div style="margin-top:15px;display:flex;gap:10px;">
+<button onclick="saveTable()" class="btn btn-primary">保存</button>
+<button onclick="hideForm()" class="btn btn-secondary">取消</button>
+</div>
+</div>
 
-    <div id="tableList"></div>
-  </div>
+<div id="tableList"></div>
+</div>
 
-  <!-- V1.2 字段详情弹窗 -->
-  <div class="modal-overlay" id="fieldModal" onclick="if(event.target===this) closeFieldModal()">
-    <div class="modal-box">
-      <button class="modal-close" onclick="closeFieldModal()">✕</button>
-      <h3 id="fieldModalTitle">字段详情</h3>
-      <div id="fieldModalContent"></div>
-    </div>
-  </div>
+<!-- V1.2 字段详情弹窗 -->
+<div class="modal-overlay" id="fieldModal" onclick="if(event.target===this) closeFieldModal()">
+<div class="modal-box">
+<button class="modal-close" onclick="closeFieldModal()"></button>
+<h3 id="fieldModalTitle">字段详情</h3>
+<div id="fieldModalContent"></div>
+</div>
+</div>
 
-  <script src="/static/js/common.js?v=121"></script>
-  <script>
-    checkLogin();
-    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
-    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+<script src="/static/js/common.js?v=142"></script>
+<script>
+ checkLogin();
+ document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+ function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
 
-    let editingId = null;
+ let editingId = null;
 
-    function showForm() { editingId=null; document.getElementById('formTitle').textContent='新建表'; document.getElementById('fieldsBody').innerHTML=''; addField(); document.getElementById('formBox').style.display='block'; }
-    function hideForm() { document.getElementById('formBox').style.display='none'; }
-    function addField() {
-      const tb = document.getElementById('fieldsBody');
-      const idx = tb.rows.length;
-      tb.insertRow().innerHTML = `<td><input class="fld" placeholder="user_id"></td>
-        <td><input class="fld" placeholder="BIGINT"></td>
-        <td><input class="fld" placeholder="主键"></td>
-        <td><input type="checkbox" class="pk"></td>
-        <td><input type="checkbox" class="nn" checked></td>
-        <td><input class="ord" value="${idx+1}" style="width:60px"></td>
-        <td><button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">删</button></td>`;
-    }
-    async function loadData() {
-      try {
-        const r = await apiGet('/api/metadata/tables');
-        const data = r.data || [];
-        renderTable(
-          ['ID','表名','注释','状态','字段数','操作'],
-          data.map(t => [
-            t.id,
-            `<button class="link-btn" onclick="showFields(${t.id})">${t.table_name}</button>`,  // V1.2 表名可点击
-            t.table_comment||'-',
-            t.status,
-            t.fields? t.fields.length:0,
-            `<button class="btn btn-secondary" onclick="delTable(${t.id})">删除</button>
-             <button class="btn btn-secondary" onclick="showFields(${t.id})">字段</button>`
-          ]),
-          'tableList'
-        );
-      } catch(e) { showMsg(e.message, true); }
-    }
-    // V1.2 显示字段详情弹窗
-    let _allTables = [];  // 缓存表列表
-    async function showFields(tableId) {
-      // 优先用已缓存的数据（list 接口已返回 fields）
-      let table = _allTables.find(t => t.id === tableId);
-      if (!table) {
-        const r = await apiGet('/api/metadata/tables/' + tableId);
-        table = r.data;
-      }
-      if (!table) return;
+ function showForm() { editingId=null; document.getElementById('formTitle').textContent='新建表'; document.getElementById('fieldsBody').innerHTML=''; addField(); document.getElementById('formBox').style.display='block'; }
+ function hideForm() { document.getElementById('formBox').style.display='none'; }
+ function addField() {
+ const tb = document.getElementById('fieldsBody');
+ const idx = tb.rows.length;
+ tb.insertRow().innerHTML = `<td><input class="fld" placeholder="user_id"></td>
+<td><input class="fld" placeholder="BIGINT"></td>
+<td><input class="fld" placeholder="主键"></td>
+<td><input type="checkbox" class="pk"></td>
+<td><input type="checkbox" class="nn" checked></td>
+<td><input class="ord" value="${idx+1}" style="width:60px"></td>
+<td><button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">删</button></td>`;
+ }
+ async function loadData() {
+ try {
+ const r = await apiGet('/api/metadata/tables');
+ const data = r.data || [];
+ renderTable(
+ ['ID编号','表名','注释','状态','字段数','操作'],
+ data.map(t => [
+ t.serial_no,
+ `<button class="link-btn" onclick="showFields(${t.id})">${t.table_name}</button>`, // V1.2 表名可点击
+ t.table_comment||'-',
+ t.status,
+ t.fields? t.fields.length:0,
+ `<button class="btn btn-secondary" onclick="delTable(${t.id})">删除</button>
+<button class="btn btn-secondary" onclick="showFields(${t.id})">字段</button>`
+ ]),
+ 'tableList'
+ );
+ } catch(e) { showMsg(e.message, true); }
+ }
+ // V1.2 显示字段详情弹窗
+ let _allTables = []; // 缓存表列表
+ async function showFields(tableId) {
+ // 优先用已缓存的数据（list 接口已返回 fields）
+ let table = _allTables.find(t => t.id === tableId);
+ if (!table) {
+ const r = await apiGet('/api/metadata/tables/' + tableId);
+ table = r.data;
+ }
+ if (!table) return;
 
-      document.getElementById('fieldModalTitle').textContent =
-        `📋 ${table.table_name} — 字段详情（${table.table_comment || ''}）`;
+ document.getElementById('fieldModalTitle').textContent =
+ ` ${table.table_name} — 字段详情（${table.table_comment || ''}）`;
 
-      const fields = table.fields || [];
-      let html = `<p style="color:#888;margin:8px 0 14px;">共 ${fields.length} 个字段 · 状态: ${table.status}</p>`;
-      if (fields.length === 0) {
-        html += `<p style="color:#999;padding:20px;text-align:center;">暂无字段</p>`;
-      } else {
-        html += `<table class="modal-table"><thead><tr>
-          <th style="width:40px;">#</th>
-          <th>字段名</th>
-          <th style="width:110px;">类型</th>
-          <th>注释</th>
-          <th style="width:60px;">主键</th>
-          <th style="width:60px;">可空</th>
-        </tr></thead><tbody>`;
-        fields.forEach((f, i) => {
-          html += `<tr>
-            <td>${f.ordinal_position || i+1}</td>
-            <td><code>${f.field_name}</code></td>
-            <td>${f.field_type}</td>
-            <td>${f.field_comment || '-'}</td>
-            <td>${f.is_primary_key ? '<span class="pk-tag">PK</span>' : '-'}</td>
-            <td>${f.is_nullable ? 'YES' : 'NO'}</td>
-          </tr>`;
-        });
-        html += `</tbody></table>`;
-      }
-      document.getElementById('fieldModalContent').innerHTML = html;
-      document.getElementById('fieldModal').style.display = 'flex';
-    }
-    function closeFieldModal() {
-      document.getElementById('fieldModal').style.display = 'none';
-    }
-    async function saveTable() {
-      const name = document.getElementById('f_table_name').value.trim();
-      if (!name) { showMsg('请输入表名', true); return; }
-      const rows = document.querySelectorAll('#fieldsBody tr');
-      if (rows.length === 0) { showMsg('至少添加一个字段', true); return; }
-      const fields = [];
-      rows.forEach((tr, i) => {
-        const cells = tr.querySelectorAll('input');
-        fields.push({
-          field_name: cells[0].value.trim(),
-          field_type: cells[1].value.trim() || 'VARCHAR(64)',
-          field_comment: cells[2].value.trim(),
-          is_primary_key: cells[3].checked,
-          is_nullable: cells[4].checked,
-          ordinal_position: parseInt(cells[5].value) || i+1,
-        });
-      });
-      const body = { table_name: name, table_comment: document.getElementById('f_table_comment').value, fields };
-      try {
-        await apiPost('/api/metadata/tables', body);
-        showMsg('保存成功');
-        hideForm();
-        loadData();
-      } catch(e) { showMsg(e.message, true); }
-    }
-    async function delTable(id) {
-      if (!confirm('确认删除？')) return;
-      try { await apiDelete('/api/metadata/tables/'+id); showMsg('已删除'); loadData(); } catch(e) { showMsg(e.message, true); }
-    }
-    async function downloadTemplate() {
-      const r = await fetch('/api/metadata/template', { headers: { 'Authorization': 'Bearer ' + _token } });
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download='metadata_template.xlsx'; a.click();
-    }
-    async function importExcel(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const fd = new FormData(); fd.append('file', file);
-      try {
-        const r = await fetch('/api/metadata/import', { method:'POST', headers:{ 'Authorization': 'Bearer '+_token }, body: fd });
-        const data = await r.json();
-        if (data.code === 0) { showMsg(`导入成功，字段数：${data.data.field_count}`); loadData(); }
-        else showMsg(data.message || '导入失败', true);
-      } catch(e) { showMsg('上传失败: '+e.message, true); }
-      input.value='';
-    }
-    // 缓存完整表列表（带 fields）
-    const _origLoadData = loadData;
-    loadData = async function() {
-      const r = await apiGet('/api/metadata/tables');
-      _allTables = r.data || [];
-      return _origLoadData();
-    };
+ const fields = table.fields || [];
+ let html = `<p style="color:var(--ink-500);margin:8px 0 14px;">共 ${fields.length} 个字段 · 状态: ${table.status}</p>`;
+ if (fields.length === 0) {
+ html += `<p style="color:var(--ink-500);padding:20px;text-align:center;">暂无字段</p>`;
+ } else {
+ html += `<table class="modal-table"><thead><tr>
+<th style="width:40px;">#</th>
+<th>字段名</th>
+<th style="width:110px;">类型</th>
+<th>注释</th>
+<th style="width:60px;">主键</th>
+<th style="width:60px;">可空</th>
+</tr></thead><tbody>`;
+ fields.forEach((f, i) => {
+ html += `<tr>
+<td>${f.ordinal_position || i+1}</td>
+<td><code>${f.field_name}</code></td>
+<td>${f.field_type}</td>
+<td>${f.field_comment || '-'}</td>
+<td>${f.is_primary_key ? '<span class="pk-tag">PK</span>' : '-'}</td>
+<td>${f.is_nullable ? 'YES' : 'NO'}</td>
+</tr>`;
+ });
+ html += `</tbody></table>`;
+ }
+ document.getElementById('fieldModalContent').innerHTML = html;
+ document.getElementById('fieldModal').style.display = 'flex';
+ }
+ function closeFieldModal() {
+ document.getElementById('fieldModal').style.display = 'none';
+ }
+ async function saveTable() {
+ const name = document.getElementById('f_table_name').value.trim();
+ if (!name) { showMsg('请输入表名', true); return; }
+ const rows = document.querySelectorAll('#fieldsBody tr');
+ if (rows.length === 0) { showMsg('至少添加一个字段', true); return; }
+ const fields = [];
+ rows.forEach((tr, i) => {
+ const cells = tr.querySelectorAll('input');
+ fields.push({
+ field_name: cells[0].value.trim(),
+ field_type: cells[1].value.trim() || 'VARCHAR(64)',
+ field_comment: cells[2].value.trim(),
+ is_primary_key: cells[3].checked,
+ is_nullable: cells[4].checked,
+ ordinal_position: parseInt(cells[5].value) || i+1,
+ });
+ });
+ const body = { table_name: name, table_comment: document.getElementById('f_table_comment').value, fields };
+ try {
+ await apiPost('/api/metadata/tables', body);
+ showMsg('保存成功');
+ hideForm();
+ loadData();
+ } catch(e) { showMsg(e.message, true); }
+ }
+ async function delTable(id) {
+ if (!confirm('确认删除？')) return;
+ try { await apiDelete('/api/metadata/tables/'+id); showMsg('已删除'); loadData(); } catch(e) { showMsg(e.message, true); }
+ }
+ async function downloadTemplate() {
+ const r = await fetch('/api/metadata/template', { headers: { 'Authorization': 'Bearer ' + _token } });
+ const blob = await r.blob();
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a'); a.href = url; a.download='metadata_template.xlsx'; a.click();
+ }
+ async function importExcel(input) {
+ const file = input.files[0];
+ if (!file) return;
+ const fd = new FormData(); fd.append('file', file);
+ try {
+ const r = await fetch('/api/metadata/import', { method:'POST', headers:{ 'Authorization': 'Bearer '+_token }, body: fd });
+ const data = await r.json();
+ if (data.code === 0) { showMsg(`导入成功，字段数：${data.data.field_count}`); loadData(); }
+ else showMsg(data.message || '导入失败', true);
+ } catch(e) { showMsg('上传失败: '+e.message, true); }
+ input.value='';
+ }
+ // 缓存完整表列表（带 fields）
+ const _origLoadData = loadData;
+ loadData = async function() {
+ const r = await apiGet('/api/metadata/tables');
+ _allTables = r.data || [];
+ return _origLoadData();
+ };
 
-    loadData();
-  </script>
+ loadData();
+</script>
 </body>
 </html>

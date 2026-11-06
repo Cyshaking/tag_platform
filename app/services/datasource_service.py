@@ -47,6 +47,7 @@ class DatasourceService(BaseService):
             is_enabled=is_enabled,
             remark=remark,
         )
+        ds.serial_no = self._gen_serial_no(Datasource, "DAT")  # V1.4.3
         self.db.add(ds)
         self.db.commit()
         self._log_info(f"创建数据源 {name} ({ds_type})", operator_id)
@@ -166,6 +167,7 @@ class DatasourceService(BaseService):
         masked = mask_password(raw_config)
         return {
             "id": ds.id,
+            "serial_no": ds.serial_no,  # V1.4.3
             "name": ds.name,
             "ds_type": ds.ds_type,
             "config": masked,

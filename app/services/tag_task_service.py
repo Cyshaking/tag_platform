@@ -125,6 +125,7 @@ class TagTaskService(BaseService):
             generated_sql=generated_sql,
             created_by=created_by,
         )
+        task.serial_no = self._gen_serial_no(TagTask, "TAG")  # V1.4.3
         self.db.add(task)
         self.db.commit()
         self.db.refresh(task)

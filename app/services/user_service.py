@@ -39,6 +39,7 @@ class UserService(BaseService):
             display_name=display_name,
             is_active=True,
         )
+        user.serial_no = self._gen_serial_no(User, "USR")  # V1.4.3
         self.db.add(user)
         self.db.flush()
 

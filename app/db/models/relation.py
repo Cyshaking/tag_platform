@@ -20,6 +20,7 @@ class TableRelation(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     left_table_id = Column(Integer, ForeignKey("meta_tables.id", ondelete="CASCADE"), nullable=False, index=True)
     left_field_id = Column(Integer, ForeignKey("meta_fields.id", ondelete="CASCADE"), nullable=False)
     right_table_id = Column(Integer, ForeignKey("meta_tables.id", ondelete="CASCADE"), nullable=False, index=True)

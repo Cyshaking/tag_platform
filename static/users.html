@@ -1,266 +1,266 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>用户与角色</title>
-  <link rel="stylesheet" href="/static/css/main.css">
+<meta charset="UTF-8">
+<title>复深蓝标签管理平台演示系统 - 用户与角色</title>
+<link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
-  <div class="header"><h1>🏷️ 标签配置管理平台</h1>
-    <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
-  <div class="nav">
-    <a href="/static/dashboard.html">🏠 首页</a>
-    <a href="/static/metadata.html">📊 元数据</a>
-    <a href="/static/themes.html">🎯 业务主题</a>
-    <a href="/static/relations.html">🔗 表关系</a>
-    <a href="/static/enum_config.html">🏷️ 枚举</a>
-    <a href="/static/datasources.html">🗄️ 数据源</a>
-    <a href="/static/approvals.html">✅ 审批</a>
-    <a href="/static/tag_tasks.html">📋 标签任务</a>
-    <a href="/static/users.html">👤 用户角色</a>
-  </div>
+<div class="header"><h1>复深蓝标签管理平台演示系统</h1>
+<div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
+<div class="nav">
+<a href="/static/dashboard.html">首页</a>
+<a href="/static/metadata.html">元数据</a>
+<a href="/static/themes.html">业务主题</a>
+<a href="/static/relations.html">表关系</a>
+<a href="/static/enum_config.html">枚举</a>
+<a href="/static/datasources.html">数据源</a>
+<a href="/static/approvals.html">审批</a>
+<a href="/static/tag_tasks.html">标签任务</a>
+<a href="/static/users.html" data-perm="admin:only">用户角色</a>
+</div>
 
-  <div class="container">
-    <h2>👤 用户与角色</h2>
-    <p style="color:#6b7280;">在此维护审批用户与角色权限；演示环境可通过右上角身份切换器快速切换审批身份（dap → tap → bap）。</p>
+<div class="container">
+<h2>用户与角色</h2>
+<p style="color:#6b7280;">在此维护审批用户与角色权限；演示环境可通过右上角身份切换器快速切换审批身份（dap → tap → bap）。</p>
 
-    <h3>用户列表</h3>
-    <div style="margin:10px 0;display:flex;gap:10px;">
-      <button onclick="showUserForm()" class="btn">➕ 新建用户</button>
-      <button onclick="loadUsers()" class="btn btn-secondary">🔄 刷新</button>
-    </div>
+<h3>用户列表</h3>
+<div style="margin:10px 0;display:flex;gap:10px;">
+<button onclick="showUserForm()" class="btn">新建用户</button>
+<button onclick="loadUsers()" class="btn btn-secondary">刷新</button>
+</div>
 
-    <div id="userFormBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
-      <h4 id="userFormTitle">新建用户</h4>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-        <div><label>用户名 *</label><input id="u_username" placeholder="至少 3 个字符"></div>
-        <div><label>显示名称</label><input id="u_display"></div>
-        <div><label>密码</label><input id="u_password" type="password" placeholder="新建必填，编辑留空则不修改"></div>
-        <div><label>状态</label><select id="u_active"><option value="true">启用</option><option value="false">禁用</option></select></div>
-        <div style="grid-column:1/3;"><label>角色（可多选）</label><div id="u_roles" style="display:flex;flex-wrap:wrap;gap:10px;padding:8px;background:#f8f9fb;border-radius:6px;"></div></div>
-      </div>
-      <div style="margin-top:12px;">
-        <button onclick="saveUser()" class="btn btn-primary">💾 保存</button>
-        <button onclick="hideUserForm()" class="btn btn-secondary">取消</button>
-      </div>
-    </div>
-    <div id="userList"></div>
+<div id="userFormBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<h4 id="userFormTitle">新建用户</h4>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+<div><label>用户名 *</label><input id="u_username" placeholder="至少 3 个字符"></div>
+<div><label>显示名称</label><input id="u_display"></div>
+<div><label>密码</label><input id="u_password" type="password" placeholder="新建必填，编辑留空则不修改"></div>
+<div><label>状态</label><select id="u_active"><option value="true">启用</option><option value="false">禁用</option></select></div>
+<div style="grid-column:1/3;"><label>角色（可多选）</label><div id="u_roles" style="display:flex;flex-wrap:wrap;gap:10px;padding:8px;background:#f8fafc;border-radius:6px;"></div></div>
+</div>
+<div style="margin-top:12px;">
+<button onclick="saveUser()" class="btn btn-primary">保存</button>
+<button onclick="hideUserForm()" class="btn btn-secondary">取消</button>
+</div>
+</div>
+<div id="userList"></div>
 
-    <h3 style="margin-top:28px;">角色列表</h3>
-    <div style="margin:10px 0;display:flex;gap:10px;">
-      <button onclick="showRoleForm()" class="btn">➕ 新建角色</button>
-      <button onclick="loadRoles()" class="btn btn-secondary">🔄 刷新</button>
-    </div>
+<h3 style="margin-top:28px;">角色列表</h3>
+<div style="margin:10px 0;display:flex;gap:10px;">
+<button onclick="showRoleForm()" class="btn">新建角色</button>
+<button onclick="loadRoles()" class="btn btn-secondary">刷新</button>
+</div>
 
-    <div id="roleFormBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
-      <h4 id="roleFormTitle">新建角色</h4>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-        <div><label>角色编码 *</label><input id="r_code" placeholder="如 biz_approver"></div>
-        <div><label>角色名称 *</label><input id="r_name"></div>
-        <div style="grid-column:1/3;"><label>描述</label><input id="r_desc"></div>
-      </div>
-      <div style="margin-top:12px;">
-        <label style="font-weight:600;">权限配置（分组勾选）</label>
-        <div id="r_perm_panel" style="margin-top:6px;max-height:260px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fafbfc;"></div>
-      </div>
-      <div style="margin-top:12px;">
-        <button onclick="saveRole()" class="btn btn-primary">💾 保存</button>
-        <button onclick="hideRoleForm()" class="btn btn-secondary">取消</button>
-      </div>
-    </div>
-    <div id="roleList"></div>
-  </div>
+<div id="roleFormBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<h4 id="roleFormTitle">新建角色</h4>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+<div><label>角色编码 *</label><input id="r_code" placeholder="如 biz_approver"></div>
+<div><label>角色名称 *</label><input id="r_name"></div>
+<div style="grid-column:1/3;"><label>描述</label><input id="r_desc"></div>
+</div>
+<div style="margin-top:12px;">
+<label style="font-weight:600;">权限配置（分组勾选）</label>
+<div id="r_perm_panel" style="margin-top:6px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;padding:10px;background:#fafbfc;"></div>
+</div>
+<div style="margin-top:12px;">
+<button onclick="saveRole()" class="btn btn-primary">保存</button>
+<button onclick="hideRoleForm()" class="btn btn-secondary">取消</button>
+</div>
+</div>
+<div id="roleList"></div>
+</div>
 
-  <script src="/static/js/common.js?v=121"></script>
-  <script>
-    checkLogin();
-    document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
-    function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
-    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+<script src="/static/js/common.js?v=142"></script>
+<script>
+ checkLogin();
+ document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
+ function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
+ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    let roles = [], editUserId = null, editRoleId = null, permCatalog = null;
+ let roles = [], editUserId = null, editRoleId = null, permCatalog = null;
 
-    async function loadPermCatalog() {
-      if (permCatalog) return permCatalog;
-      const r = await apiGet('/api/users/permissions/catalog');
-      permCatalog = r.data || { modules: [] };
-      return permCatalog;
-    }
-    // V1.2.1 渲染权限分组勾选面板
-    function renderPermPanel(selectedCodes) {
-      const panel = document.getElementById('r_perm_panel');
-      if (!permCatalog) { panel.innerHTML = '<span style="color:#999;">加载权限目录中...</span>'; return; }
-      panel.innerHTML = permCatalog.modules.map(m =>
-        `<div style="margin-bottom:10px;">
-          <div style="font-weight:600;color:#1f2937;margin-bottom:4px;">▸ ${esc(m.module_name)} <span style="color:#9ca3af;font-weight:normal;font-size:12px;">(${m.module})</span></div>
-          ${m.permissions.map(p =>
-            `<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 12px;font-size:13px;">
-              <input type="checkbox" class="rp" value="${esc(p.code)}" ${selectedCodes.includes(p.code)?'checked':''}>
-              <span title="${esc(p.desc)}">${esc(p.name)}</span>
-              <span style="color:#9ca3af;font-size:11px;">(${esc(p.code)})</span>
-            </label>`).join('')}
-        </div>`).join('');
-    }
+ async function loadPermCatalog() {
+ if (permCatalog) return permCatalog;
+ const r = await apiGet('/api/users/permissions/catalog');
+ permCatalog = r.data || { modules: [] };
+ return permCatalog;
+ }
+ // V1.2.1 渲染权限分组勾选面板
+ function renderPermPanel(selectedCodes) {
+ const panel = document.getElementById('r_perm_panel');
+ if (!permCatalog) { panel.innerHTML = '<span style="color:var(--ink-500);">加载权限目录中...</span>'; return; }
+ panel.innerHTML = permCatalog.modules.map(m =>
+ `<div style="margin-bottom:10px;">
+<div style="font-weight:600;color:#1f2937;margin-bottom:4px;">▸ ${esc(m.module_name)}<span style="color:var(--ink-400);font-weight:normal;font-size:12px;">(${m.module})</span></div>
+ ${m.permissions.map(p =>
+ `<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 12px;font-size:13px;">
+<input type="checkbox" class="rp" value="${esc(p.code)}" ${selectedCodes.includes(p.code)?'checked':''}>
+<span title="${esc(p.desc)}">${esc(p.name)}</span>
+<span style="color:var(--ink-400);font-size:11px;">(${esc(p.code)})</span>
+</label>`).join('')}
+</div>`).join('');
+ }
 
-    async function loadRoles() {
-      try {
-        const r = await apiGet('/api/users/roles');
-        roles = r.data || [];
-        renderTable(
-          ['ID','编码','名称','描述','权限','操作'],
-          roles.map(r => [
-            r.id, esc(r.code), esc(r.name), esc(r.description || ''),
-            esc((r.permissions || []).join(', ')),
-            `<button class="btn btn-secondary" onclick="editRole(${r.id})">编辑</button>
-             <button class="btn btn-danger" onclick="delRole(${r.id})">删除</button>`
-          ]),
-          'roleList'
-        );
-        renderRoleCheckboxes([]);
-      } catch(e) { showMsg(e.message, true); }
-    }
+ async function loadRoles() {
+ try {
+ const r = await apiGet('/api/users/roles');
+ roles = r.data || [];
+ renderTable(
+ ['ID','编码','名称','描述','权限','操作'],
+ roles.map(r => [
+ r.id, esc(r.code), esc(r.name), esc(r.description || ''),
+ esc((r.permissions || []).join(', ')),
+ `<button class="btn btn-secondary" onclick="editRole(${r.id})">编辑</button>
+<button class="btn btn-danger" onclick="delRole(${r.id})">删除</button>`
+ ]),
+ 'roleList'
+ );
+ renderRoleCheckboxes([]);
+ } catch(e) { showMsg(e.message, true); }
+ }
 
-    async function loadUsers() {
-      try {
-        const r = await apiGet('/api/users');
-        const data = r.data || [];
-        renderTable(
-          ['ID','用户名','显示名称','状态','角色','操作'],
-          data.map(u => [
-            u.id, esc(u.username), esc(u.display_name || ''),
-            u.is_active ? '<span style="color:#1a7f37;">启用</span>' : '<span style="color:#9ca3af;">禁用</span>',
-            (u.roles || []).map(x => esc(x.name)).join('、') || '-',
-            `<button class="btn btn-secondary" onclick="editUser(${u.id})">编辑</button>
-             <button class="btn btn-danger" onclick="delUser(${u.id})">删除</button>`
-          ]),
-          'userList'
-        );
-      } catch(e) { showMsg(e.message, true); }
-    }
+ async function loadUsers() {
+ try {
+ const r = await apiGet('/api/users');
+ const data = r.data || [];
+ renderTable(
+ ['ID编号','用户名','显示名称','状态','角色','操作'],
+ data.map(u => [
+ u.serial_no, esc(u.username), esc(u.display_name || ''),
+ u.is_active ? '<span style="color:var(--ok);">启用</span>' : '<span style="color:var(--ink-400);">禁用</span>',
+ (u.roles || []).map(x => esc(x.name)).join('、') || '-',
+ `<button class="btn btn-secondary" onclick="editUser(${u.id})">编辑</button>
+<button class="btn btn-danger" onclick="delUser(${u.id})">删除</button>`
+ ]),
+ 'userList'
+ );
+ } catch(e) { showMsg(e.message, true); }
+ }
 
-    function renderRoleCheckboxes(selected) {
-      const box = document.getElementById('u_roles');
-      box.innerHTML = roles.map(r =>
-        `<label style="display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e0e3e8;padding:4px 8px;border-radius:4px;cursor:pointer;">
-          <input type="checkbox" class="ur" value="${r.id}" ${selected.includes(r.id)?'checked':''}> ${esc(r.name)}（${esc(r.code)}）</label>`
-      ).join('') || '<span style="color:#9ca3af;">暂无角色</span>';
-    }
+ function renderRoleCheckboxes(selected) {
+ const box = document.getElementById('u_roles');
+ box.innerHTML = roles.map(r =>
+ `<label style="display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e0e3e8;padding:4px 8px;border-radius:4px;cursor:pointer;">
+<input type="checkbox" class="ur" value="${r.id}" ${selected.includes(r.id)?'checked':''}> ${esc(r.name)}（${esc(r.code)}）</label>`
+ ).join('') || '<span style="color:var(--ink-400);">暂无角色</span>';
+ }
 
-    async function showUserForm() {
-      editUserId = null;
-      await loadRoles();
-      ['u_username','u_display','u_password'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('u_username').disabled = false;
-      document.getElementById('u_active').value='true';
-      document.getElementById('userFormTitle').textContent='新建用户';
-      document.getElementById('userFormBox').style.display='block';
-      renderRoleCheckboxes([]);
-    }
-    function hideUserForm(){ document.getElementById('userFormBox').style.display='none'; }
+ async function showUserForm() {
+ editUserId = null;
+ await loadRoles();
+ ['u_username','u_display','u_password'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('u_username').disabled = false;
+ document.getElementById('u_active').value='true';
+ document.getElementById('userFormTitle').textContent='新建用户';
+ document.getElementById('userFormBox').style.display='block';
+ renderRoleCheckboxes([]);
+ }
+ function hideUserForm(){ document.getElementById('userFormBox').style.display='none'; }
 
-    async function editUser(id) {
-      const r = await apiGet('/api/users');
-      const u = (r.data||[]).find(x => x.id === id);
-      if (!u) return;
-      await loadRoles();
-      editUserId = id;
-      document.getElementById('userFormTitle').textContent = '编辑用户：' + u.username;
-      document.getElementById('u_username').value = u.username;
-      document.getElementById('u_username').disabled = true;
-      document.getElementById('u_display').value = u.display_name || '';
-      document.getElementById('u_password').value = '';
-      document.getElementById('u_active').value = u.is_active ? 'true' : 'false';
-      renderRoleCheckboxes((u.roles||[]).map(x=>x.id));
-      document.getElementById('userFormBox').style.display='block';
-    }
+ async function editUser(id) {
+ const r = await apiGet('/api/users');
+ const u = (r.data||[]).find(x => x.id === id);
+ if (!u) return;
+ await loadRoles();
+ editUserId = id;
+ document.getElementById('userFormTitle').textContent = '编辑用户：' + u.username;
+ document.getElementById('u_username').value = u.username;
+ document.getElementById('u_username').disabled = true;
+ document.getElementById('u_display').value = u.display_name || '';
+ document.getElementById('u_password').value = '';
+ document.getElementById('u_active').value = u.is_active ? 'true' : 'false';
+ renderRoleCheckboxes((u.roles||[]).map(x=>x.id));
+ document.getElementById('userFormBox').style.display='block';
+ }
 
-    async function saveUser() {
-      const roleIds = Array.from(document.querySelectorAll('#u_roles input.ur:checked')).map(el=>parseInt(el.value));
-      if (editUserId) {
-        const body = {
-          display_name: document.getElementById('u_display').value.trim() || null,
-          is_active: document.getElementById('u_active').value === 'true',
-          role_ids: roleIds,
-        };
-        const pwd = document.getElementById('u_password').value;
-        if (pwd) body.password = pwd;
-        try { await apiPut('/api/users/'+editUserId, body); showMsg('已更新'); hideUserForm(); loadUsers(); }
-        catch(e) { showMsg(e.message, true); }
-        return;
-      }
-      const body = {
-        username: document.getElementById('u_username').value.trim(),
-        password: document.getElementById('u_password').value,
-        display_name: document.getElementById('u_display').value.trim() || null,
-        role_ids: roleIds,
-      };
-      if (!body.username || !body.password) { showMsg('用户名与密码必填（密码至少 6 位）', true); return; }
-      try { await apiPost('/api/users', body); showMsg('已创建'); hideUserForm(); loadUsers(); }
-      catch(e) { showMsg(e.message, true); }
-    }
+ async function saveUser() {
+ const roleIds = Array.from(document.querySelectorAll('#u_roles input.ur:checked')).map(el=>parseInt(el.value));
+ if (editUserId) {
+ const body = {
+ display_name: document.getElementById('u_display').value.trim() || null,
+ is_active: document.getElementById('u_active').value === 'true',
+ role_ids: roleIds,
+ };
+ const pwd = document.getElementById('u_password').value;
+ if (pwd) body.password = pwd;
+ try { await apiPut('/api/users/'+editUserId, body); showMsg('已更新'); hideUserForm(); loadUsers(); }
+ catch(e) { showMsg(e.message, true); }
+ return;
+ }
+ const body = {
+ username: document.getElementById('u_username').value.trim(),
+ password: document.getElementById('u_password').value,
+ display_name: document.getElementById('u_display').value.trim() || null,
+ role_ids: roleIds,
+ };
+ if (!body.username || !body.password) { showMsg('用户名与密码必填（密码至少 6 位）', true); return; }
+ try { await apiPost('/api/users', body); showMsg('已创建'); hideUserForm(); loadUsers(); }
+ catch(e) { showMsg(e.message, true); }
+ }
 
-    async function delUser(id) {
-      if (!confirm('确认删除该用户？')) return;
-      try { await apiDelete('/api/users/'+id); showMsg('已删除'); loadUsers(); }
-      catch(e) { showMsg(e.message, true); }
-    }
+ async function delUser(id) {
+ if (!confirm('确认删除该用户？')) return;
+ try { await apiDelete('/api/users/'+id); showMsg('已删除'); loadUsers(); }
+ catch(e) { showMsg(e.message, true); }
+ }
 
-    async function showRoleForm() {
-      editRoleId = null;
-      ['r_code','r_name','r_desc'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('r_code').disabled = false;
-      document.getElementById('roleFormTitle').textContent='新建角色';
-      document.getElementById('roleFormBox').style.display='block';
-      await loadPermCatalog();
-      renderPermPanel([]);
-    }
-    function hideRoleForm(){ document.getElementById('roleFormBox').style.display='none'; }
+ async function showRoleForm() {
+ editRoleId = null;
+ ['r_code','r_name','r_desc'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('r_code').disabled = false;
+ document.getElementById('roleFormTitle').textContent='新建角色';
+ document.getElementById('roleFormBox').style.display='block';
+ await loadPermCatalog();
+ renderPermPanel([]);
+ }
+ function hideRoleForm(){ document.getElementById('roleFormBox').style.display='none'; }
 
-    async function editRole(id) {
-      const r = roles.find(x => x.id === id);
-      if (!r) return;
-      editRoleId = id;
-      document.getElementById('roleFormTitle').textContent = '编辑角色：' + r.name;
-      document.getElementById('r_code').value = r.code;
-      document.getElementById('r_code').disabled = true;
-      document.getElementById('r_name').value = r.name;
-      document.getElementById('r_desc').value = r.description || '';
-      document.getElementById('roleFormBox').style.display='block';
-      await loadPermCatalog();
-      renderPermPanel(r.permissions || []);
-    }
+ async function editRole(id) {
+ const r = roles.find(x => x.id === id);
+ if (!r) return;
+ editRoleId = id;
+ document.getElementById('roleFormTitle').textContent = '编辑角色：' + r.name;
+ document.getElementById('r_code').value = r.code;
+ document.getElementById('r_code').disabled = true;
+ document.getElementById('r_name').value = r.name;
+ document.getElementById('r_desc').value = r.description || '';
+ document.getElementById('roleFormBox').style.display='block';
+ await loadPermCatalog();
+ renderPermPanel(r.permissions || []);
+ }
 
-    async function saveRole() {
-      // V1.2.1: 从分组勾选面板读权限码，不再解析文本框
-      const perms = Array.from(document.querySelectorAll('#r_perm_panel input.rp:checked')).map(el=>el.value);
-      if (editRoleId) {
-        const body = {
-          name: document.getElementById('r_name').value.trim(),
-          description: document.getElementById('r_desc').value.trim() || null,
-          permissions: perms,
-        };
-        try { await apiPut('/api/users/roles/'+editRoleId, body); showMsg('已更新'); hideRoleForm(); loadRoles(); }
-        catch(e) { showMsg(e.message, true); }
-        return;
-      }
-      const body = {
-        code: document.getElementById('r_code').value.trim(),
-        name: document.getElementById('r_name').value.trim(),
-        description: document.getElementById('r_desc').value.trim() || null,
-        permissions: perms,
-      };
-      if (!body.code || !body.name) { showMsg('角色编码与名称必填', true); return; }
-      try { await apiPost('/api/users/roles', body); showMsg('已创建'); hideRoleForm(); loadRoles(); }
-      catch(e) { showMsg(e.message, true); }
-    }
+ async function saveRole() {
+ // V1.2.1: 从分组勾选面板读权限码，不再解析文本框
+ const perms = Array.from(document.querySelectorAll('#r_perm_panel input.rp:checked')).map(el=>el.value);
+ if (editRoleId) {
+ const body = {
+ name: document.getElementById('r_name').value.trim(),
+ description: document.getElementById('r_desc').value.trim() || null,
+ permissions: perms,
+ };
+ try { await apiPut('/api/users/roles/'+editRoleId, body); showMsg('已更新'); hideRoleForm(); loadRoles(); }
+ catch(e) { showMsg(e.message, true); }
+ return;
+ }
+ const body = {
+ code: document.getElementById('r_code').value.trim(),
+ name: document.getElementById('r_name').value.trim(),
+ description: document.getElementById('r_desc').value.trim() || null,
+ permissions: perms,
+ };
+ if (!body.code || !body.name) { showMsg('角色编码与名称必填', true); return; }
+ try { await apiPost('/api/users/roles', body); showMsg('已创建'); hideRoleForm(); loadRoles(); }
+ catch(e) { showMsg(e.message, true); }
+ }
 
-    async function delRole(id) {
-      if (!confirm('确认删除该角色？')) return;
-      try { await apiDelete('/api/users/roles/'+id); showMsg('已删除'); loadRoles(); loadUsers(); }
-      catch(e) { showMsg(e.message, true); }
-    }
+ async function delRole(id) {
+ if (!confirm('确认删除该角色？')) return;
+ try { await apiDelete('/api/users/roles/'+id); showMsg('已删除'); loadRoles(); loadUsers(); }
+ catch(e) { showMsg(e.message, true); }
+ }
 
-    loadRoles().then(loadUsers);
-  </script>
+ loadRoles().then(loadUsers);
+</script>
 </body>
 </html>

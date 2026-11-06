@@ -44,6 +44,7 @@ class MetadataService(BaseService):
             status="pending",
             created_by=created_by,
         )
+        table.serial_no = self._gen_serial_no(MetaTable, "MET")  # V1.4.3
         self.db.add(table)
         self.db.flush()
 

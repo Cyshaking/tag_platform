@@ -112,6 +112,7 @@ class ApprovalService(BaseService):
         ticket_no = self._gen_ticket_no()
         ticket = ApprovalTicket(
             ticket_no=ticket_no,
+            serial_no=ticket_no,  # V1.4.3: 同步 serial_no
             ticket_type=ticket_type,
             target_id=target_id,
             title=auto_title,
@@ -166,11 +167,14 @@ class ApprovalService(BaseService):
         if current_node in (NODE_PASSED, NODE_REJECTED):
             raise BusinessException(ERR_APPROVE_STATE, "工单已结束，不可再审批")
 
-        # 角色权限校验
+        # 角色权限校验（V1.3：admin 角色在所有节点都允许审批）
         required_role = NODE_ROLE_MAP.get(current_node)
         if required_role:
             user_role_codes = self._get_user_role_codes(approver_id)
-            if "*" not in user_role_codes and required_role not in user_role_codes:
+            # admin 角色通吃所有节点审批
+            is_admin = "admin" in user_role_codes
+            has_node_role = required_role in user_role_codes
+            if not is_admin and not has_node_role:
                 raise BusinessException(
                     ERR_APPROVE_ROLE,
                     f"当前节点需要角色 '{required_role}' 才能审批",
@@ -243,7 +247,5 @@ class ApprovalService(BaseService):
         return [row[0] for row in self.db.execute(stmt).all()]
 
     def _gen_ticket_no(self) -> str:
-        """生成工单号：TK + 时间戳 + 随机数"""
-        import random
-        import time
-        return f"TK{int(time.time() * 1000)}{random.randint(100, 999)}"
+        """生成工单号：前缀 APP + YYYYMMDD + 001 递增 (V1.4.3)"""
+        return self._gen_serial_no(ApprovalTicket, "APP")

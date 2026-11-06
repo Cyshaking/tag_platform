@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/themes", tags=["themes"])
 def _serialize(theme) -> dict:
     table = theme.main_table
     return {
-        "id": theme.id,
+        "id": theme.id, "serial_no": theme.serial_no,
         "theme_code": theme.theme_code,
         "theme_name": theme.theme_name,
         "main_table_id": theme.main_table_id,

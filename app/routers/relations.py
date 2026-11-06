@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/relations", tags=["relations"])
 
 def _serialize(r) -> dict:
     return {
-        "id": r.id,
+        "id": r.id, "serial_no": r.serial_no,
         "left_table_id": r.left_table_id, "left_field_id": r.left_field_id,
         "right_table_id": r.right_table_id, "right_field_id": r.right_field_id,
         "relation_type": r.relation_type,

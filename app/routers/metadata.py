@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/metadata", tags=["metadata"])
 
 def _serialize_table(t) -> dict:
     return {
-        "id": t.id, "table_name": t.table_name, "table_comment": t.table_comment,
+        "id": t.id, "serial_no": t.serial_no, "table_name": t.table_name, "table_comment": t.table_comment,
         "datasource_id": t.datasource_id, "status": t.status,
         "created_by": t.created_by, "created_at": t.created_at.isoformat() if t.created_at else None,
         "updated_at": t.updated_at.isoformat() if t.updated_at else None,

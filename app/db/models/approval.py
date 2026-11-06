@@ -17,6 +17,7 @@ class ApprovalTicket(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     ticket_no = Column(String(64), unique=True, nullable=False, index=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     ticket_type = Column(String(32), nullable=False)  # META_DATA
     target_id = Column(Integer, nullable=False, index=True)  # meta_tables.id
     title = Column(String(256), nullable=False)

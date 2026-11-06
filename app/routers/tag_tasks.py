@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/tag-tasks", tags=["tag_tasks"])
 
 def _serialize(t) -> dict:
     return {
-        "id": t.id, "task_name": t.task_name, "task_mode": t.task_mode,
+        "id": t.id, "serial_no": t.serial_no, "task_name": t.task_name, "task_mode": t.task_mode,
         "theme_id": t.theme_id, "business_theme": t.business_theme,
         "main_table_id": t.main_table_id, "main_field_id": t.main_field_id,
         "tag_value_code": t.tag_value_code, "raw_sql": t.raw_sql,

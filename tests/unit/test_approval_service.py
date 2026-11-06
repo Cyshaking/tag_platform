@@ -18,7 +18,7 @@ class TestApprovalService:
         svc = ApprovalService(db)
         ticket = svc.submit_ticket(target_id=sample_table.id, ticket_type="META_DATA", submitter_id=1)
 
-        assert ticket.ticket_no.startswith("TK")
+        assert ticket.ticket_no.startswith("APP")  # V1.4.3: ticket_no 改成 APP+日期+序号
         assert ticket.current_node == NODE_DATA
         assert ticket.status == "in_progress"
         assert len(ticket.logs) >= 1

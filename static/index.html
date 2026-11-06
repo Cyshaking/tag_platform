@@ -1,67 +1,80 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>标签配置平台 - 登录</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: "Microsoft YaHei", Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .login-box { background: #fff; padding: 40px; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 360px; }
-    h1 { text-align: center; color: #333; margin-bottom: 30px; font-size: 22px; }
-    .field { margin-bottom: 18px; }
-    label { display: block; color: #666; margin-bottom: 6px; font-size: 14px; }
-    input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-    input:focus { border-color: #667eea; outline: none; }
-    button { width: 100%; padding: 12px; background: #667eea; color: #fff; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; }
-    button:hover { background: #5a6fd6; }
-    .error { color: #e74c3c; text-align: center; margin-top: 15px; font-size: 14px; display: none; }
-    .hint { text-align: center; color: #999; font-size: 12px; margin-top: 15px; }
-  </style>
+<meta charset="UTF-8">
+<title>复深蓝标签管理平台演示系统 - 登录</title>
+<link rel="stylesheet" href="./css/main.css">
+<style>
+ * { margin: 0; padding: 0; box-sizing: border-box; }
+ /* 本地 file:// 协议下 CSS 变量需要先定义（main.css 在同目录下） */
+ :root{
+ --navy-700:#1f4d80; --navy-950:#0f2740; --navy-600:#2a5f96; --navy-500:#3d76ad;
+ --ink-900:#132033; --ink-800:#22304a; --ink-700:#33415c; --ink-600:#4a5975;
+ --ink-500:#64748b; --ink-400:#8b98ab;
+ --line:#e3e8ef; --surface:#ffffff; --danger:#b42318;
+ --radius:8px; --radius-sm:4px;
+ --shadow-md:0 14px 30px -18px rgba(16,35,56,.45);
+ --font-sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+ --ease:cubic-bezier(.22,.61,.36,1);
+ }
+ body { font-family:var(--font-sans); background:linear-gradient(135deg,var(--navy-700) 0%,var(--navy-950) 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; }
+ .login-box { background:var(--surface); padding:40px; border-radius:var(--radius); box-shadow:var(--shadow-md); width:380px; }
+ h1 { text-align:center; color:var(--ink-900); margin-bottom:30px; font-size:22px; font-weight:600; letter-spacing:.02em; }
+ .field { margin-bottom:18px; }
+ label { display:block; color:var(--ink-700); margin-bottom:6px; font-size:14px; font-weight:500; }
+ input { width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--radius-sm); font-size:14px; background:#fff; color:var(--ink-800); }
+ input:focus { border-color:var(--navy-600); outline:none; box-shadow:0 0 0 3px rgba(42,95,150,.12); }
+ button { width:100%; padding:12px; background:var(--navy-700); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; cursor:pointer; font-weight:500; box-shadow:0 1px 2px rgba(16,35,56,.15); transition:background .18s var(--ease); }
+ button:hover { background:#194268; }
+ .error { color:var(--danger); text-align:center; margin-top:15px; font-size:14px; display:none; }
+ .hint { text-align:center; color:var(--ink-500); font-size:12px; margin-top:15px; }
+ @media (max-width:480px){ .login-box{ width:calc(100vw - 32px); padding:28px; } }
+</style>
 </head>
 <body>
-  <div class="login-box">
-    <h1>🏷️ 标签配置平台</h1>
-    <form id="loginForm">
-      <div class="field">
-        <label>用户名</label>
-        <input type="text" id="username" value="admin" required>
-      </div>
-      <div class="field">
-        <label>密码</label>
-        <input type="password" id="password" value="admin123" required>
-      </div>
-      <button type="submit">登录</button>
-      <div class="error" id="errMsg"></div>
-    </form>
-    <p class="hint">默认账号: admin / admin123</p>
-  </div>
+<div class="login-box">
+<h1>复深蓝标签管理平台演示系统</h1>
+<form id="loginForm">
+<div class="field">
+<label>用户名</label>
+<input type="text" id="username" value="admin" required>
+</div>
+<div class="field">
+<label>密码</label>
+<input type="password" id="password" value="admin123" required>
+</div>
+<button type="submit">登录</button>
+<div class="error" id="errMsg"></div>
+</form>
+<p class="hint">默认账号: admin / admin123</p>
+</div>
 
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const errEl = document.getElementById('errMsg');
-      errEl.style.display = 'none';
-      try {
-        const resp = await fetch('/api/auth/login', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ username, password })
-        });
-        const data = await resp.json();
-        if (data.code === 0) {
-          localStorage.setItem('token', data.data.access_token);
-          localStorage.setItem('user', JSON.stringify(data.data.user));
-          window.location.href = '/static/dashboard.html';
-        } else {
-          errEl.textContent = data.message;
-          errEl.style.display = 'block';
-        }
-      } catch (err) {
-        errEl.textContent = '网络错误: ' + err.message;
-        errEl.style.display = 'block';
-      }
-    });
-  </script>
+<script>
+ document.getElementById('loginForm').addEventListener('submit', async e => {
+ e.preventDefault();
+ const username = document.getElementById('username').value.trim();
+ const password = document.getElementById('password').value;
+ const errEl = document.getElementById('errMsg');
+ errEl.style.display = 'none';
+ try {
+ const resp = await fetch('/api/auth/login', {
+ method: 'POST', headers: {'Content-Type': 'application/json'},
+ body: JSON.stringify({ username, password })
+ });
+ const data = await resp.json();
+ if (data.code === 0) {
+ localStorage.setItem('token', data.data.access_token);
+ localStorage.setItem('user', JSON.stringify(data.data.user));
+ window.location.href = '/static/dashboard.html';
+ } else {
+ errEl.textContent = data.message;
+ errEl.style.display = 'block';
+ }
+ } catch (err) {
+ errEl.textContent = '网络错误: ' + err.message;
+ errEl.style.display = 'block';
+ }
+ });
+</script>
 </body>
 </html>

@@ -67,6 +67,7 @@ class ThemeService(BaseService):
             description=description,
             is_enabled=is_enabled,
         )
+        theme.serial_no = self._gen_serial_no(BusinessTheme, "THE")  # V1.4.3
         self.db.add(theme)
         self.db.commit()
         self.db.refresh(theme)

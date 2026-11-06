@@ -16,6 +16,7 @@ class Datasource(Base):
     __tablename__ = "datasources"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     name = Column(String(128), unique=True, nullable=False, index=True)
     ds_type = Column(String(16), nullable=False)  # sqlite / spark
     config_json = Column(Text, nullable=False)  # 连接配置 JSON

@@ -16,6 +16,7 @@ class MetaTable(Base):
     __tablename__ = "meta_tables"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     table_name = Column(String(128), unique=True, nullable=False, index=True)
     table_comment = Column(String(256))
     datasource_id = Column(Integer, ForeignKey("datasources.id", ondelete="SET NULL"))

@@ -16,6 +16,7 @@ class TagTask(Base):
     __tablename__ = "tag_tasks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     task_name = Column(String(256), nullable=False)
     task_mode = Column(String(16), default="FIELD", nullable=False)  # V1.1: FIELD / SQL
     theme_id = Column(Integer, ForeignKey("business_themes.id", ondelete="SET NULL"), index=True)

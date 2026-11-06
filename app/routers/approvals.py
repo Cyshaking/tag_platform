@@ -1,24 +1,26 @@
 """
-routers/approvals.py — 审批工单（提交 / 列表 / 通过 / 驳回）
+routers/approvals.py — 审批工单（提交 / 列表 / 通过 / 驳回 / 统计）
 """
 from typing import Optional
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models.user import User
+from app.db.models.approval import ApprovalTicket
+from app.db.models.user import User, Role, UserRole
 from app.dependencies import get_current_user
 from app.schemas.common import ApiResponse
 from app.schemas.approval import ApprovalSubmitRequest, ApprovalActionRequest
-from app.services.approval_service import ApprovalService
+from app.services.approval_service import ApprovalService, NODE_ROLE_MAP
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
 
 def _serialize_ticket(t, db=None) -> dict:
     data = {
-        "id": t.id, "ticket_no": t.ticket_no, "ticket_type": t.ticket_type,
+        "id": t.id, "ticket_no": t.ticket_no, "serial_no": t.serial_no, "ticket_type": t.ticket_type,
         "target_id": t.target_id, "title": t.title, "submitter_id": t.submitter_id,
         "current_node": t.current_node, "status": t.status,
         "created_at": t.created_at.isoformat() if t.created_at else None,
@@ -66,6 +68,39 @@ def list_tickets(status: Optional[str] = None, show_my_pending: bool = False,
     tickets = svc.list_tickets(status=status, current_user_id=current_user.id,
                                show_my_pending=show_my_pending)
     return ApiResponse(data=[_serialize_ticket(t, db) for t in tickets])
+
+
+# V1.3 新增：/count 必须在 /{ticket_id} 之前，否则 "count" 会被当作 ticket_id
+@router.get("/count")
+def count_tickets(show_my_pending: bool = False,
+                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    stmt = select(Role.code).join(UserRole).where(UserRole.user_id == current_user.id)
+    user_role_codes = [row[0] for row in db.execute(stmt).all()]
+    is_admin = "admin" in user_role_codes
+
+    total_stmt = select(func.count()).where(ApprovalTicket.status == "in_progress")
+    total = db.execute(total_stmt).scalar() or 0
+
+    if show_my_pending:
+        if is_admin:
+            pending = total
+        else:
+            allowed_nodes = [
+                node for node, role in NODE_ROLE_MAP.items()
+                if role in user_role_codes
+            ]
+            if allowed_nodes:
+                pending_stmt = select(func.count()).where(
+                    ApprovalTicket.status == "in_progress",
+                    ApprovalTicket.current_node.in_(allowed_nodes),
+                )
+                pending = db.execute(pending_stmt).scalar() or 0
+            else:
+                pending = 0
+    else:
+        pending = total
+
+    return ApiResponse(data={"pending": pending, "total": total})
 
 
 @router.get("/{ticket_id}")

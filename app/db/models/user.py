@@ -15,6 +15,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial_no = Column(String(20), unique=True, nullable=True, index=True)  # V1.4.3
     username = Column(String(64), unique=True, nullable=False, index=True)
     password_hash = Column(String(128), nullable=False)
     display_name = Column(String(64))
