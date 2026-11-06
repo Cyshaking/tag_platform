@@ -341,6 +341,61 @@ small,.small{font-size:12.5px;line-height:1.8;color:var(--ink-500)}
 .ticket-card.collapsed .ticket-chev{transform:rotate(-90deg)}
 .ticket-card.collapsed .ticket-body{display:none}
 .ticket-body{padding:14px 18px}
+
+/* ============================================================
+   V1.4.3 — 角色权限配置面板（模块卡片 + 网格勾选）
+   ============================================================ */
+.perm-group{
+  margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;
+}
+.perm-group-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:linear-gradient(180deg,#f4f7fb 0%,#eef3f9 100%);
+  border-bottom:1px solid var(--line);
+}
+.perm-group-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--navy-600);flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(42,95,150,.12);
+}
+.perm-group-title{
+  font-size:14px;font-weight:600;color:var(--ink-900);
+}
+.perm-group-code{
+  font-size:11.5px;color:var(--ink-400);font-family:"Cascadia Code",Consolas,monospace;
+  background:#fff;border:1px solid var(--line);border-radius:3px;padding:1px 6px;
+}
+.perm-group-toggle{
+  font-size:12px;color:var(--navy-600);text-decoration:none;
+  padding:2px 8px;border-radius:4px;border:1px solid transparent;
+  transition:background .15s var(--ease),border-color .15s var(--ease);
+}
+.perm-group-toggle:hover{background:rgba(42,95,150,.08);border-color:var(--navy-600)}
+.perm-group-body{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 4px;
+  padding:10px 14px;
+}
+.perm-item{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 10px;border-radius:5px;cursor:pointer;
+  border:1px solid transparent;
+  transition:background .12s var(--ease),border-color .12s var(--ease);
+  font-size:13px;line-height:1.4;
+}
+.perm-item:hover{background:rgba(42,95,150,.04);border-color:rgba(42,95,150,.12)}
+.perm-item input[type=checkbox]{
+  width:14px;height:14px;cursor:pointer;accent-color:var(--navy-700);flex-shrink:0;
+}
+.perm-item-name{
+  flex:1;color:var(--ink-800);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.perm-item-code{
+  font-size:11px;color:var(--ink-400);font-family:"Cascadia Code",Consolas,monospace;
+  background:#f1f4f9;padding:1px 5px;border-radius:3px;flex-shrink:0;
+}
+.perm-item input[type=checkbox]:checked ~ .perm-item-code{
+  background:rgba(31,77,128,.08);color:var(--navy-700);
+}
 hr{border:0;border-top:1px solid var(--line-soft);margin:20px 0}
 
 /* ============================================================

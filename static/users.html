@@ -61,7 +61,7 @@
 </div>
 <div style="margin-top:12px;">
 <label style="font-weight:600;">权限配置（分组勾选）</label>
-<div id="r_perm_panel" style="margin-top:6px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;padding:10px;background:#fafbfc;"></div>
+<div id="r_perm_panel" style="margin-top:6px;max-height:520px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:12px;background:#fafbfc;"></div>
 </div>
 <div style="margin-top:12px;">
 <button onclick="saveRole()" class="btn btn-primary">保存</button>
@@ -71,7 +71,7 @@
 <div id="roleList"></div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=143"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -86,20 +86,52 @@
  permCatalog = r.data || { modules: [] };
  return permCatalog;
  }
- // V1.2.1 渲染权限分组勾选面板
+ // V1.2.1 渲染权限分组勾选面板（V1.4.3 重排：模块卡片 + 网格对齐 + 全选条）
  function renderPermPanel(selectedCodes) {
  const panel = document.getElementById('r_perm_panel');
  if (!permCatalog) { panel.innerHTML = '<span style="color:var(--ink-500);">加载权限目录中...</span>'; return; }
- panel.innerHTML = permCatalog.modules.map(m =>
- `<div style="margin-bottom:10px;">
-<div style="font-weight:600;color:#1f2937;margin-bottom:4px;">▸ ${esc(m.module_name)}<span style="color:var(--ink-400);font-weight:normal;font-size:12px;">(${m.module})</span></div>
- ${m.permissions.map(p =>
- `<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 12px;font-size:13px;">
-<input type="checkbox" class="rp" value="${esc(p.code)}" ${selectedCodes.includes(p.code)?'checked':''}>
-<span title="${esc(p.desc)}">${esc(p.name)}</span>
-<span style="color:var(--ink-400);font-size:11px;">(${esc(p.code)})</span>
-</label>`).join('')}
-</div>`).join('');
+ panel.innerHTML = `
+ <div style="margin-bottom:10px;display:flex;gap:8px;font-size:12.5px;color:var(--ink-600);">
+  <a href="#" onclick="checkAllPerms(true);return false;" style="color:var(--navy-600);">全选</a>
+  <a href="#" onclick="checkAllPerms(false);return false;" style="color:var(--navy-600);">清空</a>
+  <span style="color:var(--ink-400);">已选 <b id="permCount" style="color:var(--navy-700);font-size:13px;">0</b> 项</span>
+ </div>
+ ${permCatalog.modules.map(m => `
+ <div class="perm-group">
+  <div class="perm-group-head">
+   <span class="perm-group-dot"></span>
+   <span class="perm-group-title">${esc(m.module_name)}</span>
+   <span class="perm-group-code">${esc(m.module)}</span>
+   <span style="flex:1"></span>
+   <a href="#" onclick="toggleGroup(this);return false;" class="perm-group-toggle">全选</a>
+  </div>
+  <div class="perm-group-body">
+   ${m.permissions.map(p => `
+    <label class="perm-item">
+     <input type="checkbox" class="rp" value="${esc(p.code)}" ${selectedCodes.includes(p.code)?'checked':''} onchange="updatePermCount()">
+     <span class="perm-item-name" title="${esc(p.desc)}">${esc(p.name)}</span>
+     <span class="perm-item-code">${esc(p.code)}</span>
+    </label>`).join('')}
+  </div>
+ </div>`).join('')}`;
+ updatePermCount();
+ }
+ function checkAllPerms(checked) {
+ document.querySelectorAll('#r_perm_panel input.rp').forEach(cb => cb.checked = checked);
+ updatePermCount();
+ }
+ function toggleGroup(a) {
+ const group = a.closest('.perm-group');
+ const cbs = group.querySelectorAll('input.rp');
+ const allChecked = Array.from(cbs).every(c=>c.checked);
+ cbs.forEach(c => c.checked = !allChecked);
+ a.textContent = allChecked ? '全选' : '全不选';
+ updatePermCount();
+ }
+ function updatePermCount() {
+ const n = document.querySelectorAll('#r_perm_panel input.rp:checked').length;
+ const el = document.getElementById('permCount');
+ if (el) el.textContent = n;
  }
 
  async function loadRoles() {
