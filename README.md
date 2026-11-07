@@ -7,20 +7,22 @@
 
 ## 简介
 
-面向保险业务场景的标签配置管理平台，覆盖从数据源接入 → 元数据建模 → 业务主题抽象 → 标签任务配置 → 三级审批 → SQL 生成与执行 → 全链路审批闭环。
+面向保险业务场景的标签配置管理平台，覆盖从数据源接入 → 元数据建模 → 业务主题抽象 → 标签任务配置 → 三级审批 → SQL 生成与执行 → 全链路闭环。
+
+> **V1.5 变更**：元数据接入无需审批（保存即生效），审批模块仅保留标签任务类型；审批记录支持删除（仅已结束工单可删）。
 
 ### 核心模块
 
 | 模块 | 说明 |
 |------|------|
 | 认证与权限 | JWT 登录 + 角色权限（admin / data_approver / tech_approver / biz_approver） |
-| 元数据管理 | 数据源接入、表/字段注册、状态流转（pending → approved / rejected） |
+| 元数据管理 | 数据源接入、表/字段注册（V1.5 起保存即 approved，无需审批） |
 | 业务主题 | 从元数据表抽象业务主题，指定主题表与关联字段 |
 | 表关系 | 表间外键/关联关系定义，支撑 SQL 生成 |
 | 枚举配置 | 字段枚举值管理，供标签值编码选择 |
 | 数据源管理 | 多数据源配置（SQLite / MySQL / Spark 等） |
 | 标签任务 | 两种模式：字段配置（自动生成 SQL） / SQL 直配 |
-| 三级审批 | 数据审批 → 技术审批 → 业务审批，任一驳回即终止 |
+| 三级审批 | 仅标签任务需要：数据审批 → 技术审批 → 业务审批，任一驳回即终止；已结束工单可删除 |
 | SQL 执行 | SQLite 本地引擎执行生成的 SQL，记录执行结果 |
 
 ---
@@ -54,8 +56,9 @@ tag_platform/
 │   ├── relations.html          # 表关系
 │   ├── enum_config.html        # 枚举配置
 │   ├── datasources.html        # 数据源
-│   ├── approvals.html          # 审批工单（可折叠面板）
+│   ├── approvals.html          # 审批工单（可折叠面板 + 删除按钮）
 │   ├── tag_tasks.html          # 标签任务
+│   ├── task_records.html       # 执行记录（V1.4.3 新增）
 │   └── users.html              # 用户角色
 ├── app/
 │   ├── main.py                 # FastAPI 应用入口（CORS + 路由汇总 + 启动钩子）
@@ -150,6 +153,15 @@ self._gen_serial_no(ModelClass, "PREFIX")
 ---
 
 ## 版本更新日志
+
+### V1.5 — 2026-11-07
+
+- **元数据接入无需审批**：`create_table` 默认 `status="approved"`；存量 pending/rejected 表在应用启动时自动升为 approved
+- **审批模块精简**：`submit_ticket` 拒绝 `META_DATA` 类型，仅保留 `TAG_TASK`（标签任务工单）
+- **主题表校验放宽**：`create_theme` 不再强制校验 `meta_tables.status=approved`
+- **审批记录删除**：后端 `DELETE /api/approvals/{ticket_id}`（仅 approved/rejected 可删，in_progress/pending 阻断），前端已结束工单显示删除按钮 + 二次确认
+- **测试用例修复**：12 个失败用例对齐 V1.5 行为（META_DATA → TAG_TASK + status 断言更新），新增 6 个 V1.5 用例；全量回归 160/160 PASS
+- **文档更新**：三份 Word 文档（需求规格说明书 / 方案设计文档 / 测试与验收报告）全部反映 V1.5 变更；docs 目录清理为只剩三份正式文档
 
 ### V1.4.3 — 2026-11-06
 
