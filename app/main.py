@@ -125,6 +125,20 @@ def create_app() -> FastAPI:
         logs_dir = BASE_DIR / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
+        # V1.5 迁移：元数据不再需要审批，将 pending / rejected 的表统一升为 approved
+        try:
+            from app.db.database import get_session_factory
+            from app.db.models.metadata import MetaTable
+            factory = get_session_factory()
+            with factory() as _db:
+                updated = _db.query(MetaTable).filter(
+                    MetaTable.status.in_(["pending", "rejected"])
+                ).update({"status": "approved"}, synchronize_session=False)
+                if updated:
+                    _db.commit()
+        except Exception:
+            pass
+
     # ==================== Router 注册 ====================
     from app.routers.auth import router as auth_router
     from app.routers.users import router as users_router

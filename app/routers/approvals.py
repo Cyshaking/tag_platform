@@ -137,3 +137,12 @@ def reject(ticket_id: int, req: ApprovalActionRequest,
     svc = ApprovalService(db)
     ticket = svc.reject(ticket_id=ticket_id, approver_id=current_user.id, comment=req.comment)
     return ApiResponse(data={"current_node": ticket.current_node, "status": ticket.status})
+
+
+# V1.5: 删除审批记录（仅已结束工单可删）
+@router.delete("/{ticket_id}")
+def delete_ticket(ticket_id: int,
+                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    svc = ApprovalService(db)
+    svc.delete_ticket(ticket_id=ticket_id, operator_id=current_user.id)
+    return ApiResponse()

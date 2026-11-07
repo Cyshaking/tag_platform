@@ -69,25 +69,12 @@ class ApprovalService(BaseService):
     # ======================================================================
     def submit_ticket(self, target_id: int, ticket_type: str = "META_DATA",
                       title: Optional[str] = None, submitter_id: Optional[int] = None) -> ApprovalTicket:
-        # 校验目标
+        # V1.5: 元数据接入不再需要审批
         if ticket_type == "META_DATA":
-            table = self.db.get(MetaTable, target_id)
-            if not table:
-                raise BusinessException(ERR_NOT_FOUND, f"目标表 {target_id} 不存在")
-            # 不允许重复提交
-            existing = self.db.execute(
-                select(ApprovalTicket).where(
-                    ApprovalTicket.ticket_type == "META_DATA",
-                    ApprovalTicket.target_id == target_id,
-                    ApprovalTicket.status.in_(["pending", "in_progress"]),
-                )
-            ).scalar_one_or_none()
-            if existing:
-                raise BusinessException(ERR_APPROVE_STATE, f"该表已有进行中的工单 #{existing.ticket_no}")
+            raise BusinessException(ERR_APPROVE_STATE, "元数据接入无需审批，已默认通过")
 
-            auto_title = title or f"元数据接入审批：{table.table_name}"
-
-        elif ticket_type == "TAG_TASK":  # V1.2 新增
+        # 校验目标
+        if ticket_type == "TAG_TASK":
             task = self.db.get(TagTask, target_id)
             if not task:
                 raise BusinessException(ERR_NOT_FOUND, f"标签任务 {target_id} 不存在")
@@ -258,3 +245,26 @@ class ApprovalService(BaseService):
     def _gen_ticket_no(self) -> str:
         """生成工单号：前缀 APP + YYYYMMDD + 001 递增 (V1.4.3)"""
         return self._gen_serial_no(ApprovalTicket, "APP")
+
+    # ======================================================================
+    # 删除工单（V1.5）
+    # ======================================================================
+    def delete_ticket(self, ticket_id: int, operator_id: Optional[int] = None) -> None:
+        """
+        删除审批工单。仅允许删除已结束（approved / rejected）的工单；
+        进行中的工单（in_progress / pending）不允许删除，避免打断审批链。
+        ApprovalLog 配置了 cascade="all, delete-orphan"，随工单自动清理。
+        """
+        ticket = self.db.get(ApprovalTicket, ticket_id)
+        if not ticket:
+            raise BusinessException(ERR_NOT_FOUND, f"工单 {ticket_id} 不存在")
+        if ticket.status in ("pending", "in_progress"):
+            raise BusinessException(
+                ERR_APPROVE_STATE,
+                f"工单 #{ticket.ticket_no} 正在审批中（{ticket.status}），不可删除",
+            )
+        ticket_no = ticket.ticket_no
+        ticket_type = ticket.ticket_type
+        self.db.delete(ticket)
+        self.db.commit()
+        self._log_info(f"删除工单 #{ticket_no}（{ticket_type}）", operator_id)

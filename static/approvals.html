@@ -111,6 +111,12 @@
 <input id="cmt_${t.id}" placeholder="审批意见" style="flex:1;">
 </div>`;
  }
+ } else {
+ // V1.5: 已结束工单显示删除按钮
+ actionHtml = `<div style="display:flex;gap:10px;align-items:center;">
+<button class="btn btn-secondary" onclick="delTicket(${t.id},'${esc(t.ticket_no)}')">删除</button>
+<span style="color:#9ca3af;font-size:12px;">工单已结束，可清理</span>
+</div>`;
  }
 
  // V1.4.3: 可折叠卡片 — 默认折叠（status!=='in_progress' 的），进行中的默认展开
@@ -150,6 +156,16 @@ ${actionHtml}
  try {
  await apiPost(`/api/approvals/${id}/${action}`, { comment: cmt });
  showMsg(action==='approve'?'已通过':'已驳回'); loadMyPending();
+ } catch(e) { showMsg(e.message, true); }
+ }
+
+ // V1.5: 删除审批工单
+ async function delTicket(id, ticketNo) {
+ if (!confirm(`确认删除工单 ${ticketNo}？\n此操作不可恢复（审批日志将一并删除）`)) return;
+ try {
+ await apiDelete(`/api/approvals/${id}`);
+ showMsg('工单已删除');
+ loadList('');
  } catch(e) { showMsg(e.message, true); }
  }
 

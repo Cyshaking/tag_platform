@@ -37,11 +37,12 @@ class MetadataService(BaseService):
         if existing:
             raise BusinessException(ERR_META_TABLE_DUP, f"表名 '{table_name}' 已存在")
 
+        # V1.5: 元数据接入无需审批，创建即 approved
         table = MetaTable(
             table_name=table_name,
             table_comment=table_comment,
             datasource_id=datasource_id,
-            status="pending",
+            status="approved",
             created_by=created_by,
         )
         table.serial_no = self._gen_serial_no(MetaTable, "MET")  # V1.4.3
@@ -96,11 +97,6 @@ class MetadataService(BaseService):
                     ordinal_position=f.get("ordinal_position", i + 1),
                 ))
             changed = True
-
-        # V1.4.3 例外 (a)：已审批/已驳回的表，内容变更后重置为 pending
-        # （仅改名称不重置，但 update_table 无 table_name 参数，此处略过）
-        if changed and table.status in ("approved", "rejected"):
-            table.status = "pending"
 
         table.updated_at = datetime.utcnow()
         self.db.commit()
