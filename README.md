@@ -24,6 +24,7 @@
 | 标签任务 | 两种模式：字段配置（自动生成 SQL） / SQL 直配 |
 | 三级审批 | 仅标签任务需要：数据审批 → 技术审批 → 业务审批，任一驳回即终止；已结束工单可删除 |
 | SQL 执行 | SQLite 本地引擎执行生成的 SQL，记录执行结果 |
+| 日志管理（V1.6） | admin-only，两个 Tab：① 用户操作日志（谁做了什么）② 系统执行日志（报错可查） |
 
 ---
 
@@ -153,6 +154,17 @@ self._gen_serial_no(ModelClass, "PREFIX")
 ---
 
 ## 版本更新日志
+
+### V1.6 — 2026-11-07
+
+- **日志管理模块**：admin-only，与用户角色同级菜单
+- **用户操作日志（action_logs）**：BaseService._log_action 统一写入，在 10 个 service 的 CRUD/审批/执行入口处自动埋点（metadata / theme / relation / datasource / enum / tag_task / approval / execution / auth / user / role），不依赖 Web，service 内部保证
+- **系统执行日志（system_logs）**：V1.4.3 已有，本轮新增前端 Tab 查询能力
+- **后端**：新建 action_logs 模型 + router（GET /api/action-logs，admin-only，支持多维度筛选 + 分页），BaseService._log_action 方法；auth_service.login/switch_identity 补 commit（原本无显式 commit）
+- **前端**：新建 static/log_center.html（两个 Tab + 各自独立筛选），侧边栏 11 个页面加 admin-only 导航入口
+- **踩坑**：_log_action 必须在 self.db.commit() **之前**调用（commit 后 session ORM 对象 detached，flush 不落盘）；新创建对象需先 self.db.flush() 拿到 PK 再写 action_log；auth_service.login/switch_identity 原本无显式 commit，加 _log_action 后必须在最后 commit session；脚本式批量移动 _log_action 块容易跨函数串位置（简单找"下一个 commit"不考虑函数边界），最终手动逐文件修正
+- **端到端 HTTP 验证**：16/16 检查点全部 PASS
+- **全量 pytest**：160/160 PASS，0 FAIL（与 V1.5 最终结果一致）
 
 ### V1.5 — 2026-11-07
 
