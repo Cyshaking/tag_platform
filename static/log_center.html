@@ -76,25 +76,24 @@
 <body>
 
 <div class="header">
-  <div class="brand">标签配置管理平台</div>
-  <div class="nav">
-    <a href="/static/dashboard.html">首页</a>
-    <a href="/static/metadata.html">元数据</a>
-    <a href="/static/themes.html">业务主题</a>
-    <a href="/static/relations.html">表关系</a>
-    <a href="/static/enum_config.html">枚举</a>
-    <a href="/static/datasources.html">数据源</a>
-    <a href="/static/approvals.html">审批</a>
-    <a href="/static/tag_tasks.html">标签任务</a>
-    <a href="/static/task_records.html">执行记录</a>
-    <a href="/static/users.html" data-perm="admin:only">用户角色</a>
-    <a href="/static/log_center.html" data-perm="admin:only">日志管理</a>
-  </div>
-  <div class="user" id="userBox">
-    <span id="currentUser"></span>
+  <h1>标签管理配置平台演示系统</h1>
+  <div class="user"><span id="currentUser"></span>
     <select id="switchSel" style="display:none"></select>
     <a href="#" onclick="logout()">退出</a>
   </div>
+</div>
+<div class="nav">
+  <a href="/static/dashboard.html">首页</a>
+  <a href="/static/metadata.html">元数据</a>
+  <a href="/static/themes.html">业务主题</a>
+  <a href="/static/relations.html">表关系</a>
+  <a href="/static/enum_config.html">枚举</a>
+  <a href="/static/datasources.html">数据源</a>
+  <a href="/static/approvals.html">审批</a>
+  <a href="/static/tag_tasks.html">标签任务</a>
+  <a href="/static/task_records.html">执行记录</a>
+  <a href="/static/users.html" data-perm="admin:only">用户角色</a>
+  <a href="/static/log_center.html" data-perm="admin:only">日志管理</a>
 </div>
 
 <div class="container">
