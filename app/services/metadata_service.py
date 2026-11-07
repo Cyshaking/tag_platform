@@ -62,8 +62,16 @@ class MetadataService(BaseService):
             )
             self.db.add(field)
 
-        self.db.commit()
         self._log_info(f"创建表 {table_name}，{len(fields)} 个字段", created_by)
+        self._log_action(
+        action="CREATE",
+        target_type="META_TABLE",
+        target_id=table.id,
+        target_name=table_name,
+        detail=f"字段数={len(fields)}",
+        user_id=created_by,
+        )
+        self.db.commit()
         return table
 
     def update_table(self, table_id: int, table_comment: Optional[str] = None,
@@ -107,9 +115,17 @@ class MetadataService(BaseService):
         table = self.db.get(MetaTable, table_id)
         if not table:
             raise BusinessException(ERR_META_NOT_FOUND, f"表 {table_id} 不存在")
+        table_name = table.table_name
+        self._log_action(
+            action="DELETE",
+            target_type="META_TABLE",
+            target_id=table.id,
+            target_name=table_name,
+            user_id=operator_id,
+        )
         self.db.delete(table)
         self.db.commit()
-        self._log_info(f"删除表 {table.table_name}", operator_id)
+        self._log_info(f"删除表 {table_name}", operator_id)
 
     def set_table_status(self, table_id: int, status: str) -> MetaTable:
         """审批通过/驳回时更新状态"""

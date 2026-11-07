@@ -88,3 +88,44 @@ class BaseService:
 
     def _log_error(self, message: str, user_id: Optional[int] = None) -> None:
         self._log("ERROR", message, user_id)
+
+    # ========== 用户操作日志（ActionLog，V1.6 新增） ==========
+    def _log_action(
+        self,
+        action: str,
+        target_type: str,
+        target_id: Optional[int],
+        target_name: str = "",
+        detail: Optional[str] = None,
+        user_id: Optional[int] = None,
+        username: Optional[str] = None,
+    ) -> None:
+        """
+        写用户操作日志（action_logs）。
+
+        Args:
+            action:        CREATE / UPDATE / DELETE / SUBMIT_APPROVAL / APPROVE / REJECT / EXECUTE / LOGIN / SWITCH / TEST
+            target_type:   META_TABLE / TAG_TASK / APPROVAL_TICKET / DATASOURCE / THEME / RELATION / FIELD_ENUM / USER / ROLE / AUTH
+            target_id:     对象主键（可能为 None）
+            target_name:   对象名（表名/任务名/主题编码等）
+            detail:        可选 JSON 快照或描述
+            user_id:       操作人 user_id（优先用传入值，否则从 operator_id 参数推断）
+            username:      操作人 username（传入以避免额外查询）
+        """
+        try:
+            from app.db.models.action_log import ActionLog
+            log = ActionLog(
+                user_id=user_id,
+                username=username,
+                module=self.MODULE,
+                action=action,
+                target_type=target_type,
+                target_id=target_id,
+                target_name=(target_name or "")[:256],
+                detail=(detail[:4000] if detail else None),
+            )
+            self.db.add(log)
+            self.db.flush()  # 不 commit，由外层统一提交
+        except Exception:
+            # 日志写入失败不应影响主流程
+            pass

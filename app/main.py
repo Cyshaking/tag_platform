@@ -151,6 +151,7 @@ def create_app() -> FastAPI:
     from app.routers.tag_tasks import router as tag_tasks_router
     from app.routers.execution import router as execution_router
     from app.routers.system_logs import router as system_logs_router  # V1.4.3 新增
+    from app.routers.action_logs import router as action_logs_router    # V1.6 新增
 
     app.include_router(auth_router)
     app.include_router(users_router)
@@ -163,6 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(tag_tasks_router)
     app.include_router(execution_router)
     app.include_router(system_logs_router)  # V1.4.3
+    app.include_router(action_logs_router)  # V1.6
 
     # ==================== 静态文件 ====================
     static_dir = Path(__file__).resolve().parent.parent / "static"

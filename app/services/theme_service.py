@@ -69,6 +69,8 @@ class ThemeService(BaseService):
         )
         theme.serial_no = self._gen_serial_no(BusinessTheme, "THE")  # V1.4.3
         self.db.add(theme)
+        self.db.flush()
+        self._log_action("CREATE", "THEME", theme.id, theme_code, user_id=operator_id)
         self.db.commit()
         self.db.refresh(theme)
         self._log_info(f"创建业务主题 {theme_code}")
@@ -101,6 +103,7 @@ class ThemeService(BaseService):
             theme.main_table_id = main_table_id
 
         theme.updated_at = datetime.utcnow()
+        self._log_action("UPDATE", "THEME", theme.id, theme.theme_code, user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新业务主题 {theme.theme_code}")
         return theme
@@ -118,6 +121,7 @@ class ThemeService(BaseService):
                 f"主题 '{theme.theme_name}' 正被 {refs} 个标签任务引用，无法删除",
             )
 
+        self._log_action("DELETE", "THEME", theme_id, theme.theme_code, user_id=operator_id)
         self.db.delete(theme)
         self.db.commit()
         self._log_info(f"删除业务主题 {theme.theme_code}")

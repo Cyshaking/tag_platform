@@ -50,6 +50,7 @@ class UserService(BaseService):
                 if role:
                     self.db.add(UserRole(user_id=user.id, role_id=role.id))
 
+        self._log_action("CREATE", "USER", user.id, username, user_id=operator_id)
         self.db.commit()
         self._log_info(f"创建用户 {username}", operator_id)
         return user
@@ -78,6 +79,7 @@ class UserService(BaseService):
                 if role:
                     self.db.add(UserRole(user_id=user.id, role_id=role.id))
 
+        self._log_action("UPDATE", "USER", user.id, user.username, user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新用户 {user.username}", operator_id)
         return user
@@ -92,6 +94,7 @@ class UserService(BaseService):
         # V1.4.3 例外 (c)：admin 账号受保护，不可删除
         if user.username == "admin":
             raise BusinessException(ERR_BAD_REQUEST, "admin 账号受保护，不可删除")
+        self._log_action("DELETE", "USER", user.id, user.username, user_id=operator_id)
         self.db.delete(user)
         self.db.commit()
         self._log_info(f"删除用户 {user.username}", operator_id)
@@ -116,6 +119,7 @@ class UserService(BaseService):
             permissions=json.dumps(permissions or [], ensure_ascii=False),
         )
         self.db.add(role)
+        self._log_action("CREATE", "ROLE", role.id, code, user_id=operator_id)
         self.db.commit()
         self._log_info(f"创建角色 {code}", operator_id)
         return role
@@ -133,6 +137,7 @@ class UserService(BaseService):
         if permissions is not None:
             role.permissions = json.dumps(permissions, ensure_ascii=False)
 
+        self._log_action("UPDATE", "ROLE", role.id, role.code, user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新角色 {role.code}", operator_id)
         return role
@@ -152,6 +157,7 @@ class UserService(BaseService):
         if refs:
             raise BusinessException(ERR_BAD_REQUEST, f"角色 '{role.name}' 正在被用户使用，无法删除")
 
+        self._log_action("DELETE", "ROLE", role.id, role.code, user_id=operator_id)
         self.db.delete(role)
         self.db.commit()
         self._log_info(f"删除角色 {role.code}", operator_id)

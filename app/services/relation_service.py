@@ -63,6 +63,11 @@ class RelationService(BaseService):
         )
         rel.serial_no = self._gen_serial_no(TableRelation, "REL")  # V1.4.3
         self.db.add(rel)
+        self.db.flush()  # 先 flush 拿 rel.id
+        self._log_action("CREATE", "RELATION", rel.id,
+                         f"{left_table_id}.{left_field_id}↔{right_table_id}.{right_field_id}",
+                         detail=f"relation_type={relation_type.upper()}",
+                         user_id=created_by)
         self.db.commit()
         self._log_info(f"创建表关联 {left_table_id}.{left_field_id} ↔ {right_table_id}.{right_field_id}", created_by)
         return rel
@@ -111,6 +116,8 @@ class RelationService(BaseService):
 
         rel.updated_at = datetime.utcnow()
 
+        self._log_action("UPDATE", "RELATION", rel.id, f"relation_id={relation_id}",
+                         user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新关联规则 {relation_id}", operator_id)
         return rel
@@ -119,6 +126,8 @@ class RelationService(BaseService):
         rel = self.db.get(TableRelation, relation_id)
         if not rel:
             raise BusinessException(ERR_NOT_FOUND, f"关联规则 {relation_id} 不存在")
+        self._log_action("DELETE", "RELATION", rel.id, f"relation_id={relation_id}",
+                         user_id=operator_id)
         self.db.delete(rel)
         self.db.commit()
         self._log_info(f"删除关联规则 {relation_id}", operator_id)

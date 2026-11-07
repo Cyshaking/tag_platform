@@ -32,6 +32,8 @@ class AuthService(BaseService):
 
         token = create_access_token(user.id)
         self._log_info(f"用户 {username} 登录成功", user.id)
+        self._log_action("LOGIN", "AUTH", user.id, username, user_id=user.id)
+        self.db.commit()
 
         return {
             "access_token": token,
@@ -66,6 +68,9 @@ class AuthService(BaseService):
         old_user = self.db.get(User, operator_id)
         old_name = old_user.username if old_user else f"#{operator_id}"
         self._log_info(f"[switch_identity] {old_name} → {username}", user.id)
+        self._log_action("SWITCH", "AUTH", user.id, username,
+                         detail=f"from={old_name}", user_id=user.id)
+        self._log_action("LOGIN", "AUTH", user.id, username, user_id=user.id)
         self.db.commit()
 
         return {

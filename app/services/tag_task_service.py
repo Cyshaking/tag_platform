@@ -127,8 +127,11 @@ class TagTaskService(BaseService):
         )
         task.serial_no = self._gen_serial_no(TagTask, "TAG")  # V1.4.3
         self.db.add(task)
+        self.db.flush()  # 先 flush 拿到 task.id，再写 action_log
+        self._log_action("CREATE", "TAG_TASK", task.id, task_name,
+                         detail=f"模式={task_mode}, 生成SQL长度={len(generated_sql)}",
+                         user_id=created_by)
         self.db.commit()
-        self.db.refresh(task)
         self._log_info(f"创建标签任务 {task_name}（{task_mode} 模式），生成 SQL {len(generated_sql)} 字符", created_by)
         return task
 
@@ -197,6 +200,9 @@ class TagTaskService(BaseService):
             task.status = "pending"
 
         task.updated_at = datetime.utcnow()
+        self._log_action("UPDATE", "TAG_TASK", task.id, task.task_name,
+                         detail=("SQL 变更, 状态重置为 pending" if sql_changed else "基本信息更新"),
+                         user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新标签任务 {task.task_name}", operator_id)
         return task
@@ -205,9 +211,12 @@ class TagTaskService(BaseService):
         task = self.db.get(TagTask, task_id)
         if not task:
             raise BusinessException(ERR_NOT_FOUND, f"标签任务 {task_id} 不存在")
+        task_name = task.task_name
+        task_pk = task.id
+        self._log_action("DELETE", "TAG_TASK", task_pk, task_name, user_id=operator_id)
         self.db.delete(task)
         self.db.commit()
-        self._log_info(f"删除标签任务 {task.task_name}", operator_id)
+        self._log_info(f"删除标签任务 {task_name}", operator_id)
 
     # ==================================================================
     # 预览 / 校验

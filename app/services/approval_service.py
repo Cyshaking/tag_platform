@@ -119,6 +119,14 @@ class ApprovalService(BaseService):
             comment=f"提交审批：{auto_title}",
         ))
 
+        self._log_action(
+            action="SUBMIT_APPROVAL",
+            target_type="APPROVAL_TICKET",
+            target_id=ticket.id,
+            target_name=ticket_no,
+            detail=f"工单类型={ticket_type}, 目标ID={target_id}",
+            user_id=submitter_id,
+        )
         self.db.commit()
         self._log_info(f"提交工单 #{ticket_no}", submitter_id)
         return ticket
@@ -231,6 +239,14 @@ class ApprovalService(BaseService):
             comment=comment or (f"{action} by approver"),
         ))
 
+        self._log_action(
+            action=action.upper(),
+            target_type="APPROVAL_TICKET",
+            target_id=ticket.id,
+            target_name=ticket.ticket_no,
+            detail=f"节点={current_node}, 意见={comment or ''}",
+            user_id=approver_id,
+        )
         self.db.commit()
         self._log_info(f"工单 #{ticket.ticket_no}: {action}@{current_node}", approver_id)
         return ticket
@@ -265,6 +281,14 @@ class ApprovalService(BaseService):
             )
         ticket_no = ticket.ticket_no
         ticket_type = ticket.ticket_type
+        self._log_action(
+            action="DELETE",
+            target_type="APPROVAL_TICKET",
+            target_id=ticket.id,
+            target_name=ticket_no,
+            detail=f"工单类型={ticket_type}, 状态={ticket.status}",
+            user_id=operator_id,
+        )
         self.db.delete(ticket)
         self.db.commit()
         self._log_info(f"删除工单 #{ticket_no}（{ticket_type}）", operator_id)

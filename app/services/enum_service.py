@@ -61,6 +61,9 @@ class EnumService(BaseService):
             self.db.add(obj)
             new_enums.append(obj)
 
+        self._log_action("UPDATE", "FIELD_ENUM", field_id,
+                         f"field_id={field_id}, table_id={table_id}",
+                         detail=f"保存 {len(new_enums)} 个枚举", user_id=operator_id)
         self.db.commit()
         self._log_info(f"保存字段 {field_id} 的 {len(new_enums)} 个枚举", operator_id)
         return new_enums
@@ -69,5 +72,10 @@ class EnumService(BaseService):
         enum = self.db.get(FieldEnum, enum_id)
         if not enum:
             raise BusinessException(ERR_NOT_FOUND, f"枚举 {enum_id} 不存在")
+        table_id = enum.table_id
+        field_id = enum.field_id
+        enum_code = enum.enum_code
+        self._log_action("DELETE", "FIELD_ENUM", enum_id,
+                         f"{enum_code}", user_id=operator_id)
         self.db.delete(enum)
         self.db.commit()

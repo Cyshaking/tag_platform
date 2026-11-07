@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>日志管理 - 标签管理配置平台</title>
+<link rel="stylesheet" href="/static/css/main.css">
+<style>
+  .log-tabs { display:flex; border-bottom:2px solid var(--line); margin-bottom:20px; }
+  .log-tabs button {
+    flex:1; padding:12px 20px; background:none; border:none;
+    font-size:15px; font-weight:500; color:var(--ink-500);
+    cursor:pointer; border-bottom:3px solid transparent;
+    transition:all .18s var(--ease);
+    box-shadow:none; width:auto;
+  }
+  .log-tabs button:hover { color:var(--ink-800); background:none; }
+  .log-tabs button.active { color:var(--navy-700); border-bottom-color:var(--navy-700); }
+
+  .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; align-items:center; }
+  .filter-bar input, .filter-bar select {
+    padding:7px 10px; border:1px solid var(--line); border-radius:var(--radius-sm);
+    font-size:13px; background:#fff; color:var(--ink-800);
+  }
+  .filter-bar button {
+    padding:7px 18px; background:var(--navy-700); color:#fff; border:none;
+    border-radius:var(--radius-sm); font-size:13px; cursor:pointer; width:auto;
+  }
+  .filter-bar button:hover { background:#194268; }
+  .filter-bar button.ghost { background:#fff; color:var(--ink-700); border:1px solid var(--line); }
+  .filter-bar button.ghost:hover { background:var(--ink-50); color:var(--ink-800); }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--line); }
+  th { background:#f8fafc; font-weight:600; color:var(--ink-700); white-space:nowrap; }
+  td { color:var(--ink-800); }
+  tr:hover td { background:#f8fafc; }
+
+  .tag {
+    display:inline-block; padding:2px 8px; border-radius:10px;
+    font-size:11px; font-weight:500;
+  }
+  .tag-info { background:#e7f5f2; color:#0f766e; }
+  .tag-warn { background:#fef3c7; color:#b45309; }
+  .tag-error { background:#fee2e2; color:#b91c1c; }
+  .tag-debug { background:#e2e8f0; color:#475569; }
+
+  .action-CREATE { background:#dbeafe; color:#1d4ed8; }
+  .action-UPDATE { background:#fef3c7; color:#b45309; }
+  .action-DELETE { background:#fee2e2; color:#b91c1c; }
+  .action-SUBMIT_APPROVAL { background:#e0e7ff; color:#4338ca; }
+  .action-APPROVE { background:#d1fae5; color:#047857; }
+  .action-REJECT { background:#fee2e2; color:#b91c1c; }
+  .action-EXECUTE { background:#fae8ff; color:#a21caf; }
+  .action-LOGIN { background:#d1fae5; color:#047857; }
+  .action-SWITCH { background:#e0e7ff; color:#4338ca; }
+
+  .pagination {
+    display:flex; gap:8px; align-items:center; justify-content:flex-end;
+    margin-top:15px; font-size:13px; color:var(--ink-600);
+  }
+  .pagination button {
+    padding:5px 12px; border:1px solid var(--line); background:#fff;
+    border-radius:var(--radius-sm); cursor:pointer; font-size:13px;
+    color:var(--ink-700);
+  }
+  .pagination button:hover:not(:disabled) { border-color:var(--navy-600); color:var(--navy-700); }
+  .pagination button:disabled { opacity:.5; cursor:not-allowed; }
+
+  .cell-detail {
+    max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  td.message { max-width:400px; word-break:break-all; white-space:normal; }
+  td.detail { max-width:300px; word-break:break-all; white-space:normal; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">标签配置管理平台</div>
+  <div class="nav">
+    <a href="/static/dashboard.html">首页</a>
+    <a href="/static/metadata.html">元数据</a>
+    <a href="/static/themes.html">业务主题</a>
+    <a href="/static/relations.html">表关系</a>
+    <a href="/static/enum_config.html">枚举</a>
+    <a href="/static/datasources.html">数据源</a>
+    <a href="/static/approvals.html">审批</a>
+    <a href="/static/tag_tasks.html">标签任务</a>
+    <a href="/static/task_records.html">执行记录</a>
+    <a href="/static/users.html" data-perm="admin:only">用户角色</a>
+    <a href="/static/log_center.html" data-perm="admin:only">日志管理</a>
+  </div>
+  <div class="user" id="userBox">
+    <span id="currentUser"></span>
+    <select id="switchSel" style="display:none"></select>
+    <a href="#" onclick="logout()">退出</a>
+  </div>
+</div>
+
+<div class="container">
+  <h2>日志管理</h2>
+  <p style="color:var(--ink-500);font-size:13px;margin-bottom:5px;">系统内置全链路审计能力，仅管理员可见。</p>
+
+  <!-- Tab 切换 -->
+  <div class="log-tabs">
+    <button id="tabAction" class="active" onclick="switchTab('action')">用户操作日志</button>
+    <button id="tabSystem" onclick="switchTab('system')">系统执行日志</button>
+  </div>
+
+  <!-- 用户操作日志 -->
+  <div id="panelAction">
+    <div class="filter-bar">
+      <input type="text" id="faUser" placeholder="用户名">
+      <select id="faModule">
+        <option value="">全部模块</option>
+        <option>metadata</option><option>theme</option><option>relation</option>
+        <option>datasource</option><option>tag_task</option><option>approval</option>
+        <option>execution</option><option>auth</option>
+      </select>
+      <select id="faAction">
+        <option value="">全部动作</option>
+        <option>CREATE</option><option>UPDATE</option><option>DELETE</option>
+        <option>SUBMIT_APPROVAL</option><option>APPROVE</option><option>REJECT</option>
+        <option>EXECUTE</option><option>LOGIN</option><option>SWITCH</option>
+      </select>
+      <input type="date" id="faStart">
+      <input type="date" id="faEnd">
+      <button onclick="loadActionLogs()">查询</button>
+      <button class="ghost" onclick="resetActionFilter()">重置</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px;">时间</th>
+          <th style="width:80px;">操作人</th>
+          <th style="width:90px;">模块</th>
+          <th style="width:120px;">动作</th>
+          <th style="width:100px;">对象类型</th>
+          <th style="width:70px;">对象ID</th>
+          <th style="width:160px;">对象名</th>
+          <th>详情</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyAction"></tbody>
+    </table>
+    <div class="pagination" id="pagAction"></div>
+  </div>
+
+  <!-- 系统执行日志 -->
+  <div id="panelSystem" style="display:none">
+    <div class="filter-bar">
+      <select id="fsLevel">
+        <option value="">全部级别</option>
+        <option>DEBUG</option><option>INFO</option><option>WARN</option><option>ERROR</option>
+      </select>
+      <input type="text" id="fsModule" placeholder="模块名(模糊)">
+      <input type="number" id="fsUser" placeholder="操作人 user_id" style="width:120px;">
+      <input type="date" id="fsStart">
+      <input type="date" id="fsEnd">
+      <button onclick="loadSystemLogs()">查询</button>
+      <button class="ghost" onclick="resetSystemFilter()">重置</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px;">时间</th>
+          <th style="width:90px;">级别</th>
+          <th style="width:110px;">模块</th>
+          <th style="width:90px;">操作人ID</th>
+          <th>消息内容</th>
+        </tr>
+      </thead>
+      <tbody id="tbodySystem"></tbody>
+    </table>
+    <div class="pagination" id="pagSystem"></div>
+  </div>
+</div>
+
+<script src="/static/js/common.js"></script>
+<script>
+const API = '/api';
+let currentTab = 'action';
+let pageAction = 1, pageSystem = 1, PAGE_SIZE = 20;
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabAction').classList.toggle('active', tab === 'action');
+  document.getElementById('tabSystem').classList.toggle('active', tab === 'system');
+  document.getElementById('panelAction').style.display = tab === 'action' ? '' : 'none';
+  document.getElementById('panelSystem').style.display = tab === 'system' ? '' : 'none';
+  if (tab === 'action') loadActionLogs();
+  else loadSystemLogs();
+}
+
+function buildUrl(base, params) {
+  const qs = Object.entries(params).filter(([_,v]) => v !== '' && v !== null && v !== undefined).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  return base + (qs ? '?' + qs : '');
+}
+
+// ============ 用户操作日志 ============
+async function loadActionLogs(p=pageAction) {
+  pageAction = p;
+  const params = {
+    username: document.getElementById('faUser').value.trim(),
+    module: document.getElementById('faModule').value,
+    action: document.getElementById('faAction').value,
+    start_time: document.getElementById('faStart').value + 'T00:00:00' || '',
+    end_time: document.getElementById('faEnd').value + 'T23:59:59' || '',
+    page: p, page_size: PAGE_SIZE,
+  };
+  // 去掉 start_time/end_time 为空的情况
+  if (!document.getElementById('faStart').value) delete params.start_time;
+  if (!document.getElementById('faEnd').value) delete params.end_time;
+
+  const resp = await fetch(buildUrl(API + '/action-logs', params), {
+    headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')}
+  });
+  const data = await resp.json();
+  const tbody = document.getElementById('tbodyAction');
+  if (data.code !== 0 || !data.data.items.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink-500);padding:30px;">暂无数据</td></tr>';
+    document.getElementById('pagAction').innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = data.data.items.map(r => `
+    <tr>
+      <td style="white-space:nowrap">${formatTime(r.created_at)}</td>
+      <td>${r.username || '-'}</td>
+      <td>${r.module || '-'}</td>
+      <td><span class="tag action-${r.action}">${r.action}</span></td>
+      <td>${r.target_type || '-'}</td>
+      <td>${r.target_id ?? '-'}</td>
+      <td class="cell-detail" title="${escapeHtml(r.target_name||'')}">${escapeHtml(r.target_name||'-')}</td>
+      <td class="detail">${escapeHtml(r.detail || '')}</td>
+    </tr>
+  `).join('');
+  renderPagination('pagAction', data.data.total, p, PAGE_SIZE, loadActionLogs);
+}
+
+function resetActionFilter() {
+  document.getElementById('faUser').value = '';
+  document.getElementById('faModule').value = '';
+  document.getElementById('faAction').value = '';
+  document.getElementById('faStart').value = '';
+  document.getElementById('faEnd').value = '';
+  loadActionLogs(1);
+}
+
+// ============ 系统执行日志 ============
+async function loadSystemLogs(p=pageSystem) {
+  pageSystem = p;
+  const params = {
+    level: document.getElementById('fsLevel').value,
+    module: document.getElementById('fsModule').value.trim(),
+    user_id: document.getElementById('fsUser').value || '',
+    page: p, page_size: PAGE_SIZE,
+  };
+  const start = document.getElementById('fsStart').value;
+  const end = document.getElementById('fsEnd').value;
+  if (start) params.start_time = start + 'T00:00:00';
+  if (end) params.end_time = end + 'T23:59:59';
+
+  const resp = await fetch(buildUrl(API + '/system-logs', params), {
+    headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')}
+  });
+  const data = await resp.json();
+  const tbody = document.getElementById('tbodySystem');
+  if (data.code !== 0 || !data.data.items.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-500);padding:30px;">暂无数据</td></tr>';
+    document.getElementById('pagSystem').innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = data.data.items.map(r => `
+    <tr>
+      <td style="white-space:nowrap">${formatTime(r.created_at)}</td>
+      <td><span class="tag tag-${(r.level||'info').toLowerCase()}">${r.level}</span></td>
+      <td>${r.module || '-'}</td>
+      <td>${r.user_id ?? '-'}</td>
+      <td class="message">${escapeHtml(r.message || '')}</td>
+    </tr>
+  `).join('');
+  renderPagination('pagSystem', data.data.total, p, PAGE_SIZE, loadSystemLogs);
+}
+
+function resetSystemFilter() {
+  document.getElementById('fsLevel').value = '';
+  document.getElementById('fsModule').value = '';
+  document.getElementById('fsUser').value = '';
+  document.getElementById('fsStart').value = '';
+  document.getElementById('fsEnd').value = '';
+  loadSystemLogs(1);
+}
+
+// ============ 辅助 ============
+function formatTime(iso) {
+  if (!iso) return '-';
+  return iso.replace('T', ' ').slice(0, 19);
+}
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+function renderPagination(elId, total, page, size, fn) {
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const el = document.getElementById(elId);
+  el.innerHTML = `
+    共 ${total} 条
+    <button ${page<=1?'disabled':''} onclick="(${fn.name})(${page-1})">上一页</button>
+    <span>${page} / ${totalPages}</span>
+    <button ${page>=totalPages?'disabled':''} onclick="(${fn.name})(${page+1})">下一页</button>
+  `;
+}
+
+// 初始加载
+loadActionLogs();
+</script>
+</body>
+</html>

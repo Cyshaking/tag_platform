@@ -49,6 +49,9 @@ class DatasourceService(BaseService):
         )
         ds.serial_no = self._gen_serial_no(Datasource, "DAT")  # V1.4.3
         self.db.add(ds)
+        self.db.flush()  # 先 flush 拿 ds.id
+        self._log_action("CREATE", "DATASOURCE", ds.id, name,
+                         detail=f"ds_type={ds_type}", user_id=operator_id)
         self.db.commit()
         self._log_info(f"创建数据源 {name} ({ds_type})", operator_id)
         return ds
@@ -76,6 +79,7 @@ class DatasourceService(BaseService):
             ds.remark = remark
         ds.updated_at = datetime.utcnow()
 
+        self._log_action("UPDATE", "DATASOURCE", ds.id, ds.name, user_id=operator_id)
         self.db.commit()
         self._log_info(f"更新数据源 {ds.name}", operator_id)
         return ds
@@ -93,6 +97,7 @@ class DatasourceService(BaseService):
                 f"数据源 '{ds.name}' 已绑定 {len(refs)} 个标签任务，请先解除绑定后再删除",
             )
 
+        self._log_action("DELETE", "DATASOURCE", ds.id, ds.name, user_id=operator_id)
         self.db.delete(ds)
         self.db.commit()
         self._log_info(f"删除数据源 {ds.name}", operator_id)

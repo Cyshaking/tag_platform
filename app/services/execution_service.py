@@ -114,6 +114,9 @@ class ExecutionService(BaseService):
             # 异步提交 + BackgroundTasks 轮询
             self._run_async(engine, record, ds_config, background_tasks)
 
+        self._log_action("EXECUTE", "TAG_TASK", task.id, task.task_name,
+                         detail=f"record_id={record.id}, ds_type={ds.ds_type}",
+                         user_id=operator_id)
         self._log_info(f"提交执行 tag_task={task.id} ds={ds.id} ds_type={ds.ds_type}", operator_id)
         return record
 
