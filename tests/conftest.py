@@ -20,6 +20,7 @@ from app.db.database import Base
 from app.db.models.user import User, Role, UserRole
 from app.db.models.metadata import MetaTable, MetaField
 from app.db.models.datasource import Datasource
+from app.db.models.tag_task import TagTask
 from app.utils.security import hash_password
 
 
@@ -123,3 +124,32 @@ def sqlite_ds(db: Session) -> Datasource:
     )
     db.add(ds); db.commit(); db.refresh(ds)
     return ds
+
+
+@pytest.fixture
+def sample_tag_task(db: Session, sample_table: MetaTable, sqlite_ds: Datasource) -> TagTask:
+    """预置一个可提交审批的标签任务（SQL 直配模式，引用 sample_table 的主键）"""
+    pk_field = None
+    for f in sample_table.fields:
+        if f.is_primary_key:
+            pk_field = f
+            break
+    if pk_field is None:
+        # 兜底：用第一个字段
+        pk_field = sample_table.fields[0]
+
+    task = TagTask(
+        task_name="test_tag_task",
+        task_mode="SQL",
+        business_theme="测试主题",
+        main_table_id=sample_table.id,
+        main_field_id=pk_field.id,
+        tag_value_code="TAG_TEST",
+        raw_sql=f"SELECT {pk_field.field_name} FROM {sample_table.table_name}",
+        datasource_id=sqlite_ds.id,
+        generated_sql=f"SELECT {pk_field.field_name} FROM {sample_table.table_name}",
+        status="pending",
+        created_by=1,
+    )
+    db.add(task); db.commit(); db.refresh(task)
+    return task

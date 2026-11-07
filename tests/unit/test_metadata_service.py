@@ -27,7 +27,7 @@ class TestMetadataService:
         assert t.table_name == "users_t"
         assert len(t.fields) == 2
         assert t.fields[0].is_primary_key is True
-        assert t.status == "pending"
+        assert t.status == "approved"  # V1.5: 元数据创建即通过，无需审批
 
     def test_create_dup_table_rejected(self, db: Session, sample_table):
         svc = MetadataService(db)
