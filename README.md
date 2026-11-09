@@ -60,6 +60,7 @@ tag_platform/
 │   ├── approvals.html          # 审批工单（可折叠面板 + 删除按钮）
 │   ├── tag_tasks.html          # 标签任务
 │   ├── task_records.html       # 执行记录（V1.4.3 新增）
+│   ├── log_center.html         # 日志管理（V1.6 新增，admin-only，两个 Tab 切换）
 │   └── users.html              # 用户角色
 ├── app/
 │   ├── main.py                 # FastAPI 应用入口（CORS + 路由汇总 + 启动钩子）
@@ -67,10 +68,10 @@ tag_platform/
 │   ├── dependencies.py         # 依赖注入（DB Session / 当前用户）
 │   ├── db/
 │   │   ├── database.py          # SQLAlchemy engine / SessionLocal / Base
-│   │   ├── models/             # ORM 模型（14 张表：users roles user_roles meta_tables meta_fields table_relations field_enums approval_tickets approval_logs datasources business_themes tag_tasks task_execute_records system_logs）
+│   │   ├── models/             # ORM 模型（15 张表：users roles user_roles meta_tables meta_fields table_relations field_enums approval_tickets approval_logs datasources business_themes tag_tasks task_execute_records system_logs action_logs）
 │   │   └── seed_data.py        # 保险演示数据（幂等初始化）
 │   ├── engines/                # SQL 执行引擎（base / sqlite / spark）
-│   ├── routers/                # REST API 路由（10 个 router）
+│   ├── routers/                # REST API 路由（12 个 router）
 │   ├── schemas/                # Pydantic 输入/输出模型
 │   ├── services/               # 业务逻辑层（12 个 service）
 │   │   └── base.py             # BaseService + 通用 serial_no 编号生成器
@@ -223,11 +224,11 @@ self._gen_serial_no(ModelClass, "PREFIX")
 | 文件 | 路径 | 说明 |
 |------|------|------|
 | 需求规格说明书 | `docs/tag_platform_需求规格说明书.docx` | 功能需求、接口清单、业务流程、验收标准 |
-| 方案设计文档 | `docs/tag_platform_方案设计文档.docx` | 架构设计、ER 图、14 张表结构、核心模块实现、配置设计 |
+| 方案设计文档 | `docs/tag_platform_方案设计文档.docx` | 架构设计、ER 图、15 张表结构、核心模块实现、配置设计 |
 | 测试与验收报告 | `docs/tag_platform_测试与验收报告.docx` | 各版本测试覆盖、问题清单、最终验收结论 |
 | 冒烟测试脚本 | `scripts/smoke_test.py` | API 端到端冒烟测试（临时 DB，失败真实退出非 0） |
 | 源码 | `app/` | FastAPI 应用（router/service/schemas/db/engines/utils） |
-| 前端 | `static/` | 原生 HTML/CSS/JS 静态资源（10 个页面） |
+| 前端 | `static/` | 原生 HTML/CSS/JS 静态资源（11 个页面） |
 | pytest 用例 | `tests/` | unit / integration / engines / e2e 四层测试 |
 
 ---
