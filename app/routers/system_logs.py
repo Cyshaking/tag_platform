@@ -6,7 +6,7 @@ GET /api/system-logs  — admin-only，按 level/module/user/时间筛选，分�
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -43,21 +43,28 @@ def list_system_logs(
     db: Session = Depends(get_db),
 ):
     """查询系统日志（仅 admin 可访问）"""
-    stmt = select(SystemLog)
-
+    conditions = []
     if level:
-        stmt = stmt.where(SystemLog.level == level)
+        conditions.append(SystemLog.level == level)
     if module:
-        stmt = stmt.where(SystemLog.module.like(f"%{module}%"))
+        conditions.append(SystemLog.module.like(f"%{module}%"))
     if user_id is not None:
-        stmt = stmt.where(SystemLog.user_id == user_id)
+        conditions.append(SystemLog.user_id == user_id)
     if start_time:
-        stmt = stmt.where(SystemLog.created_at >= start_time)
+        conditions.append(SystemLog.created_at >= start_time)
     if end_time:
-        stmt = stmt.where(SystemLog.created_at <= end_time)
+        conditions.append(SystemLog.created_at <= end_time)
 
-    total = db.execute(select(SystemLog.__table__.count()).where(*stmt._where_criteria)).scalar() if stmt._where_criteria else db.query(SystemLog).count()
+    # count：显式 conditions + select(func.count())，V1.6 修复 _where_criteria 导致的 500 异常
+    count_stmt = select(func.count()).select_from(SystemLog)
+    if conditions:
+        count_stmt = count_stmt.where(*conditions)
+    total = db.execute(count_stmt).scalar() or 0
 
+    # items
+    stmt = select(SystemLog)
+    if conditions:
+        stmt = stmt.where(*conditions)
     stmt = stmt.order_by(desc(SystemLog.created_at))
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     rows = db.execute(stmt).scalars().all()

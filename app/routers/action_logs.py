@@ -6,7 +6,7 @@ GET /api/action-logs — admin-only，按 user_id/module/action/target_type/时�
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -49,31 +49,32 @@ def list_action_logs(
     db: Session = Depends(get_db),
 ):
     """查询用户操作日志（仅 admin 可访问）"""
-    stmt = select(ActionLog)
-
+    conditions = []
     if user_id is not None:
-        stmt = stmt.where(ActionLog.user_id == user_id)
+        conditions.append(ActionLog.user_id == user_id)
     if username:
-        stmt = stmt.where(ActionLog.username.like(f"%{username}%"))
+        conditions.append(ActionLog.username.like(f"%{username}%"))
     if module:
-        stmt = stmt.where(ActionLog.module.like(f"%{module}%"))
+        conditions.append(ActionLog.module.like(f"%{module}%"))
     if action:
-        stmt = stmt.where(ActionLog.action == action)
+        conditions.append(ActionLog.action == action)
     if target_type:
-        stmt = stmt.where(ActionLog.target_type == target_type)
+        conditions.append(ActionLog.target_type == target_type)
     if start_time:
-        stmt = stmt.where(ActionLog.created_at >= start_time)
+        conditions.append(ActionLog.created_at >= start_time)
     if end_time:
-        stmt = stmt.where(ActionLog.created_at <= end_time)
+        conditions.append(ActionLog.created_at <= end_time)
 
-    # 统计总数
-    try:
-        total = db.execute(
-            select(ActionLog.__table__.count()).where(*(stmt._where_criteria or []))
-        ).scalar() if stmt._where_criteria else db.query(ActionLog).count()
-    except Exception:
-        total = db.query(ActionLog).count()
+    # count：显式 conditions 列表 + select(func.count())，保证 total 与 items 同步
+    count_stmt = select(func.count()).select_from(ActionLog)
+    if conditions:
+        count_stmt = count_stmt.where(*conditions)
+    total = db.execute(count_stmt).scalar() or 0
 
+    # items
+    stmt = select(ActionLog)
+    if conditions:
+        stmt = stmt.where(*conditions)
     stmt = stmt.order_by(desc(ActionLog.created_at))
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     rows = db.execute(stmt).scalars().all()
