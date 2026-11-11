@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.schemas.common import ApiResponse
 from app.schemas.theme import ThemeCreate, ThemeUpdate
 from app.services.theme_service import ThemeService
@@ -31,13 +31,14 @@ def _serialize(theme) -> dict:
 
 
 @router.get("")
-def list_themes(db: Session = Depends(get_db)):
+def list_themes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = ThemeService(db)
     return ApiResponse(data=[_serialize(t) for t in svc.list_themes()])
 
 
 @router.get("/{theme_id}/tables")
-def get_theme_table(theme_id: int, db: Session = Depends(get_db)):
+def get_theme_table(theme_id: int, current_user: User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
     """主题表信息（含字段），供标签任务页字段配置使用"""
     svc = ThemeService(db)
     table = svc.get_theme_table(theme_id)
@@ -56,7 +57,8 @@ def get_theme_table(theme_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{theme_id}")
-def get_theme(theme_id: int, db: Session = Depends(get_db)):
+def get_theme(theme_id: int, current_user: User = Depends(get_current_user),
+              db: Session = Depends(get_db)):
     svc = ThemeService(db)
     theme = svc.get_theme(theme_id)
     if not theme:
@@ -64,7 +66,7 @@ def get_theme(theme_id: int, db: Session = Depends(get_db)):
     return ApiResponse(data=_serialize(theme))
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_permission("theme:edit"))])
 def create_theme(req: ThemeCreate,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = ThemeService(db)
@@ -76,7 +78,7 @@ def create_theme(req: ThemeCreate,
     return ApiResponse(data={"id": theme.id})
 
 
-@router.put("/{theme_id}")
+@router.put("/{theme_id}", dependencies=[Depends(require_permission("theme:edit"))])
 def update_theme(theme_id: int, req: ThemeUpdate,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = ThemeService(db)
@@ -88,7 +90,7 @@ def update_theme(theme_id: int, req: ThemeUpdate,
     return ApiResponse()
 
 
-@router.delete("/{theme_id}")
+@router.delete("/{theme_id}", dependencies=[Depends(require_permission("theme:edit"))])
 def delete_theme(theme_id: int,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = ThemeService(db)

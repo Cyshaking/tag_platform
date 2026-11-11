@@ -8,7 +8,6 @@ services/sql_validator.py — SQL 直配模式的只读校验（V1.1 新增）
 from __future__ import annotations
 
 import json
-import re
 from typing import Tuple
 
 from sqlalchemy.orm import Session
@@ -16,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.db.models.datasource import Datasource
 from app.services.base import BaseService
 from app.utils.exceptions import BusinessException, ERR_NOT_FOUND, ERR_DS_DISABLED
+from app.utils.sql_guard import check_readonly_sql
 
 
 _ENGINE_MAP = None
@@ -32,14 +32,6 @@ def _engines():
 
 class SQLValidator(BaseService):
     MODULE = "tag_task"
-
-    _FORBIDDEN = re.compile(
-        r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|"
-        r"ATTACH|DETACH|PRAGMA|VACUUM|GRANT|REVOKE|MERGE)\b",
-        re.IGNORECASE,
-    )
-    _READONLY_HEAD = re.compile(r"^(SELECT|WITH)\b", re.IGNORECASE)
-    _COMMENT = re.compile(r"(--[^\n]*\n)|(/\*.*?\*/)", re.DOTALL)
 
     # ==================================================================
     # 对外入口
@@ -77,20 +69,10 @@ class SQLValidator(BaseService):
     # 静态校验
     # ==================================================================
     def validate_text(self, sql: str) -> Tuple[bool, str, str]:
-        """只读静态校验，返回 (是否通过, 原因, 规范化 SQL)"""
-        raw = (sql or "").strip()
-        if not raw:
-            return False, "SQL 不能为空", ""
+        """
+        只读静态校验，返回 (是否通过, 原因, 规范化 SQL)。
 
-        normalized = self._COMMENT.sub(" ", raw).strip()
-        while normalized.endswith(";"):
-            normalized = normalized[:-1].rstrip()
-
-        if ";" in normalized:
-            return False, "仅支持单条 SELECT 语句，禁止多语句", normalized
-        if not self._READONLY_HEAD.match(normalized):
-            return False, "仅允许 SELECT 或 WITH 开头的只读查询", normalized
-        match = self._FORBIDDEN.search(normalized)
-        if match:
-            return False, f"SQL 包含禁止的写操作关键字: {match.group(0).upper()}", normalized
-        return True, "校验通过", normalized
+        V1.7 P0：实现统一收敛到 utils/sql_guard.check_readonly_sql，
+        执行阶段（ExecutionService）复用同一函数，避免两处规则漂移。
+        """
+        return check_readonly_sql(sql)

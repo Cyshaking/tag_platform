@@ -1,28 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 元数据接入</title>
-<link rel="stylesheet" href="/static/js/../css/main.css">
-<style>
- /* V1.2 字段详情弹窗 */
- .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; display:none; align-items:center; justify-content:center; }
- .modal-box { background:#fff; border-radius:8px; padding:24px; width:min(800px, 92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
- .modal-box h3 { margin:0 0 12px; font-size:18px; }
- .modal-close { float:right; cursor:pointer; font-size:22px; color:var(--ink-500); border:none; background:none; }
- .modal-close:hover { color:#333; }
- .modal-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
- .modal-table th { background:#f4f8fd; padding:8px; text-align:left; border:1px solid var(--line); }
- .modal-table td { padding:6px 8px; border:1px solid #eee; }
- .modal-table tr:hover { background:#fafafa; }
- .pk-tag { color:#fff; background:var(--danger); padding:2px 6px; border-radius:3px; font-size:11px; }
- .link-btn { color:var(--navy-600); cursor:pointer; text-decoration:underline; border:none; background:none; font-size:14px; padding:0; }
- .link-btn:hover { color:#1d4ed8; }
-</style>
+<title>TAG//OPS · 元数据接入</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
 <div class="header">
-<h1>标签管理配置平台演示系统</h1>
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
 </div>
 <div class="nav">
@@ -40,7 +43,7 @@
 
 <div class="container">
 <h2>元数据接入</h2>
-<div style="margin:15px 0;display:flex;gap:10px;flex-wrap:wrap;">
+<div class="bar-row">
 <button onclick="showForm()" class="btn">新建表</button>
 <button onclick="document.getElementById('fileInput').click()" class="btn btn-secondary">Excel 导入</button>
 <button onclick="downloadTemplate()" class="btn btn-secondary">下载模板</button>
@@ -49,19 +52,19 @@
 </div>
 
 <!-- 新建表单 -->
-<div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<div id="formBox" class="panel" style="display:none;">
 <h3 id="formTitle">新建表</h3>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
+<div class="form-grid cols-2">
 <div><label>表名 *</label><input id="f_table_name" placeholder="如 user_info"></div>
 <div><label>表注释</label><input id="f_table_comment" placeholder="如 用户基础信息"></div>
 </div>
 <h4>字段列表</h4>
-<table id="fieldsTable" border="1" style="border-collapse:collapse;width:100%;font-size:13px;margin-bottom:10px;">
+<table id="fieldsTable" style="margin-bottom:10px;">
 <thead><tr><th>字段名*</th><th>类型*</th><th>注释</th><th>主键</th><th>可空</th><th>顺序</th><th>操作</th></tr></thead>
 <tbody id="fieldsBody"></tbody>
 </table>
 <button onclick="addField()" class="btn btn-secondary">添加字段</button>
-<div style="margin-top:15px;display:flex;gap:10px;">
+<div class="btn-row" style="margin-top:15px;">
 <button onclick="saveTable()" class="btn btn-primary">保存</button>
 <button onclick="hideForm()" class="btn btn-secondary">取消</button>
 </div>
@@ -73,13 +76,13 @@
 <!-- V1.2 字段详情弹窗 -->
 <div class="modal-overlay" id="fieldModal" onclick="if(event.target===this) closeFieldModal()">
 <div class="modal-box">
-<button class="modal-close" onclick="closeFieldModal()"></button>
+<button class="modal-close" onclick="closeFieldModal()">×</button>
 <h3 id="fieldModalTitle">字段详情</h3>
 <div id="fieldModalContent"></div>
 </div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -134,7 +137,7 @@
  ` ${table.table_name} — 字段详情（${table.table_comment || ''}）`;
 
  const fields = table.fields || [];
- let html = `<p style="color:var(--ink-500);margin:8px 0 14px;">共 ${fields.length} 个字段 · 状态: ${table.status}</p>`;
+ let html = `<p class="hint" style="margin:8px 0 14px;">共 ${fields.length} 个字段 · 状态: ${table.status}</p>`;
  if (fields.length === 0) {
  html += `<p style="color:var(--ink-500);padding:20px;text-align:center;">暂无字段</p>`;
  } else {

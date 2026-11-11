@@ -104,7 +104,8 @@ def count_tickets(show_my_pending: bool = False,
 
 
 @router.get("/{ticket_id}")
-def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
+def get_ticket(ticket_id: int, current_user: User = Depends(get_current_user),
+               db: Session = Depends(get_db)):
     svc = ApprovalService(db)
     ticket = svc.get_ticket(ticket_id)
     if not ticket:

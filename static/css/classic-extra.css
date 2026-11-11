@@ -1,0 +1,346 @@
+/* ============================================================
+   classic-extra.css — V1.4 经典海军蓝主题补充样式
+   仅在 theme=classic 时由页面 <head> 内联脚本按需引入。
+   新版页面结构类（panel / form-grid / chip / modal / toast …）
+   在旧样式表里没有对应规则，这里补齐浅色皮肤。
+   所有规则以 html[data-theme="classic"] 前缀限定作用域。
+   ============================================================ */
+
+/* ---------- 设计令牌别名（页面内联样式使用） ---------- */
+html[data-theme="classic"]{
+  --bg: #f4f6f9;
+  --bg-2: #eef2f7;
+  --panel: #ffffff;
+  --panel-2: #f8fafd;
+  --panel-3: #f1f5fa;
+  --line-strong: #d3dbe6;
+  --accent: #1f4d80;
+  --accent-2: #2a5f96;
+  --accent-dim: #3d76ad;
+  --amber: #b26a00;
+  --red: #b42318;
+  --green: #1a7f37;
+  --blue: #2a5f96;
+  --font-display: var(--font-sans);
+}
+
+/* ---------- 顶栏品牌区 ---------- */
+html[data-theme="classic"] .brand{display:flex;align-items:center;gap:11px;min-width:0}
+html[data-theme="classic"] .brand-mark{
+  width:24px;height:24px;flex:none;display:grid;
+  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;
+}
+html[data-theme="classic"] .brand-mark i{display:block;background:rgba(255,255,255,.88)}
+html[data-theme="classic"] .brand-mark i:nth-child(2),
+html[data-theme="classic"] .brand-mark i:nth-child(3){opacity:.5}
+html[data-theme="classic"] .brand-mark i:nth-child(4){background:#ffd08a;opacity:.9}
+html[data-theme="classic"] .brand-name{
+  font-size:16px;font-weight:600;letter-spacing:.12em;color:#fff;white-space:nowrap;
+}
+html[data-theme="classic"] .brand-name em{font-style:normal;color:#9ecbf5;margin:0 .05em}
+html[data-theme="classic"] .brand-sub{
+  font-size:12px;letter-spacing:.06em;color:rgba(255,255,255,.64);
+  padding-left:12px;border-left:1px solid rgba(255,255,255,.25);white-space:nowrap;
+}
+
+/* ---------- 顶栏时钟 ---------- */
+html[data-theme="classic"] .sys-status{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.74);
+  padding:3px 9px;border:1px solid rgba(255,255,255,.24);
+  border-radius:999px;background:rgba(255,255,255,.07);
+}
+html[data-theme="classic"] .sys-status .dot{
+  width:6px;height:6px;border-radius:50%;background:#7be3a0;
+  box-shadow:0 0 6px rgba(123,227,160,.85);
+  animation:clPulse 2.4s var(--ease) infinite;
+}
+@keyframes clPulse{0%,100%{opacity:1}50%{opacity:.35}}
+html[data-theme="classic"] .header .user{gap:14px}
+
+/* ---------- 容器 / 面板 ---------- */
+html[data-theme="classic"] .page-desc{color:var(--ink-600);font-size:13px;line-height:1.9;margin-bottom:14px}
+html[data-theme="classic"] .panel{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;margin-bottom:18px;box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .panel::before{display:none}
+
+/* ---------- 表单网格 ---------- */
+html[data-theme="classic"] .form-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px 14px;margin-bottom:12px;
+}
+html[data-theme="classic"] .form-grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+html[data-theme="classic"] .form-grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+html[data-theme="classic"] .form-grid.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+html[data-theme="classic"] .form-grid .span-2{grid-column:1/-1}
+
+/* ---------- 筛选条 ---------- */
+html[data-theme="classic"] .filter-bar{
+  display:flex;flex-wrap:wrap;gap:9px;align-items:center;
+  margin:15px 0;padding:12px 14px;
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .filter-bar input,
+html[data-theme="classic"] .filter-bar select{width:auto;min-width:132px;height:36px;padding:0 10px;font-size:13px}
+html[data-theme="classic"] .filter-bar .total-info{margin-left:auto;font-size:12px;color:var(--ink-500)}
+
+/* ---------- 表格容器 / 空态 ---------- */
+html[data-theme="classic"] .table-wrap{width:100%;overflow-x:auto;margin-bottom:10px}
+html[data-theme="classic"] .table-wrap > table{border:none}
+html[data-theme="classic"] table code{
+  background:#f1f4f9;border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px;color:var(--navy-800);
+}
+html[data-theme="classic"] .empty{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:40px 20px;text-align:center;
+  color:var(--ink-500);font-size:13px;
+  border:1px dashed #cfd8e4;border-radius:var(--radius);background:#fbfcfe;
+}
+html[data-theme="classic"] .empty::before{
+  content:"NO DATA";font-family:var(--font-mono);font-size:10px;
+  letter-spacing:.2em;color:var(--ink-400);
+}
+
+/* ---------- 状态 / 类型标签 ---------- */
+html[data-theme="classic"] .status-disabled{background:#f1f3f7;color:var(--ink-500)}
+html[data-theme="classic"] .text-amber{color:#8a5a00!important}
+html[data-theme="classic"] .chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:1px 8px;border-radius:999px;
+  font-size:11.5px;font-weight:500;border:1px solid transparent;white-space:nowrap;
+}
+html[data-theme="classic"] .chip-task,
+html[data-theme="classic"] .chip-sql{background:#eef4fb;color:#1f4d80;border-color:#cfe0f2}
+html[data-theme="classic"] .chip-meta,
+html[data-theme="classic"] .chip-field{background:#eef7f1;color:#1a7f37;border-color:#cfe8d6}
+
+/* ---------- 工单目标 / 日志行 ---------- */
+html[data-theme="classic"] .target-box{
+  background:#f7f9fc;border:1px solid var(--line);border-radius:6px;
+  padding:10px 14px;margin:8px 0 12px;font-size:12.5px;
+}
+html[data-theme="classic"] .target-row{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--ink-600)}
+html[data-theme="classic"] .target-row b{color:var(--ink-800);font-weight:600}
+html[data-theme="classic"] .log-entry{
+  font-family:var(--font-mono);font-size:11.5px;line-height:1.8;color:var(--ink-600);
+  border-left:2px solid #d8e2ee;padding:2px 0 2px 10px;margin:4px 0;
+}
+html[data-theme="classic"] .ticket-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:10px}
+html[data-theme="classic"] .ticket-actions input{flex:1;min-width:160px}
+html[data-theme="classic"] details summary{cursor:pointer;color:var(--navy-600);font-size:12.5px;margin-top:6px}
+
+/* ---------- 执行记录卡片 ---------- */
+html[data-theme="classic"] .record-card{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:12px;box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .record-head{
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;
+  font-size:13px;color:var(--ink-600);margin-bottom:6px;
+}
+html[data-theme="classic"] .record-head b{font-size:13px;font-weight:600;color:var(--ink-900)}
+
+/* ---------- 任务配置 chip / 条件行 ---------- */
+html[data-theme="classic"] .cfg-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#f4f8fd;border:1px solid #d5ddeb;border-radius:4px;
+  padding:3px 9px;margin:0 4px 4px 0;font-size:12.5px;color:var(--ink-700);
+}
+html[data-theme="classic"] .cfg-chip .cfg-idx{color:var(--navy-700);font-weight:700;font-size:11px}
+html[data-theme="classic"] .cfg-chip .cfg-from{
+  color:#8a5a00;font-size:10.5px;letter-spacing:.04em;
+  border-left:1px solid #d5ddeb;padding-left:6px;
+}
+html[data-theme="classic"] .cfg-chip a{color:var(--ink-400);text-decoration:none;font-size:13px}
+html[data-theme="classic"] .cfg-chip a:hover{color:var(--navy-600)}
+html[data-theme="classic"] .cfg-chip .cfg-x:hover{color:var(--danger)}
+html[data-theme="classic"] .cond-row{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  margin-bottom:6px;padding:7px 10px;
+  background:#f7f9fc;border:1px solid var(--line);border-radius:4px;
+}
+html[data-theme="classic"] .cond-row select{width:auto;min-width:120px;height:34px;padding:4px 9px;font-size:12.5px}
+html[data-theme="classic"] .cond-row input{width:auto;min-width:160px;height:34px;padding:4px 9px;font-size:12.5px}
+html[data-theme="classic"] .cond-row .cond-first{font-size:11px;color:var(--ink-500)}
+html[data-theme="classic"] .cond-row .cond-x{color:var(--ink-400);font-size:14px;text-decoration:none;line-height:1}
+html[data-theme="classic"] .cond-row .cond-x:hover{color:var(--danger)}
+
+/* ---------- 执行结果 ---------- */
+html[data-theme="classic"] .exec-head{
+  display:flex;align-items:center;gap:10px;font-size:14px;
+  margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line-soft);
+}
+html[data-theme="classic"] .exec-icon{
+  width:34px;height:34px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid currentColor;border-radius:50%;font-size:15px;
+}
+html[data-theme="classic"] .kv th{width:120px;background:#f4f8fd;font-weight:600;color:var(--ink-700)}
+html[data-theme="classic"] pre.error-pre{
+  background:#3b1c1c;color:#ffc9c9;border:1px solid #6b2b2b;box-shadow:none;
+}
+
+/* ---------- 角色权限面板 ---------- */
+html[data-theme="classic"] .perm-panel{
+  margin-top:6px;max-height:560px;overflow-y:auto;
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px;background:#f7f9fc;
+}
+html[data-theme="classic"] .perm-toolbar{
+  display:flex;gap:14px;align-items:center;
+  font-size:12.5px;color:var(--ink-600);margin-bottom:10px;
+}
+html[data-theme="classic"] .perm-toolbar a{color:var(--navy-600);text-decoration:none}
+html[data-theme="classic"] .perm-toolbar .perm-count{margin-left:auto;color:var(--ink-500);font-size:12px}
+html[data-theme="classic"] .perm-toolbar .perm-count b{color:var(--navy-700)}
+
+/* ---------- 角色勾选芯片 ---------- */
+html[data-theme="classic"] .chk-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid #d3dbe6;
+  padding:4px 10px;border-radius:4px;cursor:pointer;
+  font-size:13px;color:var(--ink-700);
+  transition:border-color .14s var(--ease),background .14s var(--ease);
+}
+html[data-theme="classic"] .chk-chip:hover{border-color:var(--navy-600);background:#f8fafd}
+html[data-theme="classic"] .chk-chip:has(input:checked){border-color:var(--navy-600);background:#eef4fb;color:var(--navy-800)}
+html[data-theme="classic"] .chk-chip input{margin:0}
+html[data-theme="classic"] .chk-box{
+  display:flex;flex-wrap:wrap;gap:8px;padding:10px;
+  background:#f7f9fc;border:1px solid var(--line);border-radius:4px;
+}
+
+/* ---------- 弹窗 ---------- */
+html[data-theme="classic"] .modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(16,35,56,.5);
+}
+html[data-theme="classic"] .modal-box{
+  position:relative;background:#fff;border:1px solid #d3dbe6;
+  border-radius:var(--radius);padding:22px 24px;
+  width:min(800px,92vw);max-height:85vh;overflow-y:auto;
+  box-shadow:0 30px 80px -30px rgba(16,35,56,.55);
+}
+html[data-theme="classic"] .modal-box::before{display:none}
+html[data-theme="classic"] .modal-box h3{
+  margin:0 0 12px;padding-right:36px;
+  font-size:16px;font-weight:600;color:var(--ink-900);
+}
+html[data-theme="classic"] .modal-close{
+  position:absolute;right:12px;top:10px;
+  width:28px;height:28px;border:none;background:transparent;
+  color:var(--ink-500);font-size:18px;line-height:1;cursor:pointer;border-radius:4px;
+}
+html[data-theme="classic"] .modal-close:hover{color:var(--danger);background:#fdecea}
+html[data-theme="classic"] .modal-table{margin-top:10px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+html[data-theme="classic"] .modal-table th{background:#f4f8fd}
+html[data-theme="classic"] .pk-tag{
+  display:inline-block;padding:0 6px;border-radius:3px;
+  background:#fdf3d8;color:#6b4d0f;border:1px solid #ecd9a6;
+  font-size:11px;font-weight:600;
+}
+html[data-theme="classic"] .link-btn{
+  border:none;background:none;padding:0;cursor:pointer;
+  color:var(--navy-600);font-size:13px;
+  border-bottom:1px dashed #a8c4e0;
+}
+html[data-theme="classic"] .link-btn:hover{color:var(--navy-700);border-bottom-color:var(--navy-700)}
+
+/* ---------- Toast ---------- */
+html[data-theme="classic"] .toast{
+  position:fixed;top:74px;left:50%;transform:translateX(-50%);
+  z-index:9999;display:flex;align-items:center;gap:9px;
+  padding:9px 18px;border-radius:4px;
+  font-size:13px;font-weight:500;
+  background:#fff;color:var(--ink-800);
+  border:1px solid #d3dbe6;
+  box-shadow:0 16px 40px -18px rgba(16,35,56,.45);
+  animation:clToastIn .22s var(--ease);
+}
+html[data-theme="classic"] .toast::before{
+  content:"";width:6px;height:6px;border-radius:50%;flex:none;background:var(--ok);
+}
+html[data-theme="classic"] .toast-ok{border-color:#b6dfc4;color:#1a7f37}
+html[data-theme="classic"] .toast-ok::before{background:var(--ok)}
+html[data-theme="classic"] .toast-error{border-color:#e6c9c5;color:var(--danger)}
+html[data-theme="classic"] .toast-error::before{background:var(--danger)}
+@keyframes clToastIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- 首页模块卡 ---------- */
+html[data-theme="classic"] .dash-strip{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,#f8fafd,#fff);
+  box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .dash-strip b{color:var(--ink-900)}
+html[data-theme="classic"] .module{
+  background:linear-gradient(180deg,#f9fbfe,#fff);
+  border:1px solid var(--line);box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .module::before{
+  background:linear-gradient(90deg,var(--navy-600),rgba(42,95,150,0));
+}
+html[data-theme="classic"] .module::after{border-color:rgba(42,95,150,.12)}
+html[data-theme="classic"] .module:hover{
+  border-color:rgba(42,95,150,.42);
+  box-shadow:0 14px 32px -22px rgba(16,35,56,.4);
+}
+html[data-theme="classic"] .m-dot{
+  background:var(--navy-600);opacity:1;
+  box-shadow:0 0 0 3px rgba(42,95,150,.14);
+}
+html[data-theme="classic"] .m-tag{background:#f4f8fd;border-color:var(--line);color:var(--ink-500)}
+html[data-theme="classic"] .module:hover .m-arrow{color:var(--navy-600)}
+html[data-theme="classic"] .flow{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .flow .step .n{color:var(--navy-600)}
+
+/* ---------- 日志页 Tab / 标签 ---------- */
+html[data-theme="classic"] .log-tabs{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+}
+html[data-theme="classic"] .log-tabs button:hover{background:#f4f8fd;color:var(--navy-700)}
+html[data-theme="classic"] .log-tabs button.active{
+  color:#fff;background:var(--navy-700);
+  box-shadow:0 2px 6px rgba(16,35,56,.18);
+}
+html[data-theme="classic"] .tag-info{background:#eaf1fa;color:#1f4d80;border-color:#cfe0f2}
+html[data-theme="classic"] .tag-warn{background:#fdf3d8;color:#6b4d0f;border-color:#ecd9a6}
+html[data-theme="classic"] .tag-error{background:#fdecea;color:#b42318;border-color:#e6c9c5}
+html[data-theme="classic"] .tag-debug{background:#f1f3f7;color:var(--ink-500);border-color:#dfe4ec}
+html[data-theme="classic"] .tag.action-CREATE,
+html[data-theme="classic"] .tag.action-LOGIN{background:#eaf6ec;color:#1a7f37;border-color:#cfe8d6}
+html[data-theme="classic"] .tag.action-UPDATE{background:#fdf3d8;color:#6b4d0f;border-color:#ecd9a6}
+html[data-theme="classic"] .tag.action-DELETE,
+html[data-theme="classic"] .tag.action-REJECT{background:#fdecea;color:#b42318;border-color:#e6c9c5}
+html[data-theme="classic"] .tag.action-SUBMIT_APPROVAL,
+html[data-theme="classic"] .tag.action-SWITCH{background:#eef4fb;color:#1f4d80;border-color:#cfe0f2}
+html[data-theme="classic"] .tag.action-APPROVE{background:#eaf1fa;color:#1f4d80;border-color:#cfe0f2}
+html[data-theme="classic"] .tag.action-EXECUTE{background:#eef7f1;color:#1a7f37;border-color:#cfe8d6}
+html[data-theme="classic"] .pagination button:hover:not(:disabled){border-color:var(--navy-600);color:var(--navy-700)}
+
+/* ---------- 悬浮主题切换按钮（按钮形态适配） ---------- */
+html[data-theme="classic"] .fab-item{
+  display:flex;align-items:center;gap:8px;
+  width:100%;border:none;background:transparent;
+  font-family:inherit;text-align:left;
+}
+html[data-theme="classic"] .fab-item:hover{background:#f4f8fd}
+html[data-theme="classic"] .fab-item.active{background:#eef4fb;color:var(--navy-800)}
+html[data-theme="classic"] .fab-item .tick{margin-left:auto;color:var(--navy-600);font-size:11px}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:768px){
+  html[data-theme="classic"] .form-grid,
+  html[data-theme="classic"] .form-grid.cols-2,
+  html[data-theme="classic"] .form-grid.cols-5{grid-template-columns:1fr}
+  html[data-theme="classic"] .brand-sub{display:none}
+}

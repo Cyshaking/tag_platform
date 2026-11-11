@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.schemas.common import ApiResponse
 from app.schemas.enum_config import EnumBatchCreate
 from app.services.enum_service import EnumService
@@ -24,12 +24,13 @@ def _serialize(e) -> dict:
 
 
 @router.get("")
-def list_enums(field_id: Optional[int] = None, table_id: Optional[int] = None, db: Session = Depends(get_db)):
+def list_enums(field_id: Optional[int] = None, table_id: Optional[int] = None,
+               current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = EnumService(db)
     return ApiResponse(data=[_serialize(e) for e in svc.list_enums(field_id=field_id, table_id=table_id)])
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_permission("enum:edit"))])
 def save_enums(req: EnumBatchCreate,
                current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = EnumService(db)
@@ -42,7 +43,7 @@ def save_enums(req: EnumBatchCreate,
     return ApiResponse(data={"count": len(enums)})
 
 
-@router.delete("/{enum_id}")
+@router.delete("/{enum_id}", dependencies=[Depends(require_permission("enum:edit"))])
 def delete_enum(enum_id: int,
                 current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = EnumService(db)

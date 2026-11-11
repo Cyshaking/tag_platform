@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 审批工单</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 审批工单</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
-<div class="header"><h1>标签管理配置平台演示系统</h1>
+<div class="header">
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
 <div class="nav">
 <a href="/static/dashboard.html">首页</a>
@@ -23,7 +42,7 @@
 
 <div class="container">
 <h2>审批工单</h2>
-<div style="margin:15px 0;display:flex;gap:10px;">
+<div class="bar-row">
 <button onclick="loadList('')" class="btn btn-secondary">全部</button>
 <button onclick="loadList('in_progress')" class="btn btn-secondary">进行中</button>
 <button onclick="loadList('approved')" class="btn btn-secondary">已通过</button>
@@ -33,7 +52,7 @@
 <div id="ticketList"></div>
 </div>
 
-<script src="/static/js/common.js?v=143"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -43,8 +62,8 @@
  function nodeLabel(n) { return ({DATA_APPROVAL:'数据审批',TECH_APPROVAL:'技术审批',BIZ_APPROVAL:'业务审批',PASSED:'已通过',REJECTED:'已驳回'})[n]||n; }
  function statusCls(s) { return 'status-'+s; }
  function typeLabel(t) { return t==='TAG_TASK'
- ? '<span style="background:#eaf1fa;color:var(--navy-800);padding:2px 8px;border-radius:4px;font-size:11px;"> 标签任务</span>'
- : '<span style="background:#f0fdf4;color:var(--ok);padding:2px 8px;border-radius:4px;font-size:11px;"> 元数据</span>'; }
+ ? '<span class="chip chip-task">标签任务</span>'
+ : '<span class="chip chip-meta">元数据</span>'; }
 
  async function loadList(status) {
  try {
@@ -58,7 +77,7 @@
  }
 
  function render(data) {
- if (!data.length) { document.getElementById('ticketList').innerHTML = '<p style="color:var(--ink-500);padding:20px;text-align:center;">暂无工单</p>'; return; }
+ if (!data.length) { document.getElementById('ticketList').innerHTML = '<div class="empty">暂无工单</div>'; return; }
  let html = '';
  data.forEach(t => {
  // V1.2.1: 渲染目标详情（完整保留）
@@ -68,22 +87,22 @@
  if (t.ticket_type === 'TAG_TASK') {
  const modeLbl = ti.task_mode === 'SQL' ? 'SQL 直配' : '字段配置';
  const statusMap = {pending:'未提交',in_progress:'审批中',approved:'已通过',rejected:'已驳回'};
- const statusColor = ti.status==='approved'?'var(--ok)':ti.status==='rejected'?'var(--danger)':'#b06000';
- targetHtml = `<div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
-<div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
+ const statusColor = ti.status==='approved'?'var(--ok)':ti.status==='rejected'?'var(--danger)':'var(--amber)';
+ targetHtml = `<div class="target-box">
+<div class="target-row">
 <span>任务名:<b>${esc(ti.task_name)}</b></span>
 <span>模式: ${modeLbl}</span>
 <span>主题: ${esc(ti.business_theme||'-')}</span>
 <span>标签值:<code>${esc(ti.tag_value_code)}</code></span>
 <span>状态:<span style="color:${statusColor}">${statusMap[ti.status]||ti.status}</span></span>
 </div>
- ${ti.generated_sql ? `<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--navy-600);font-size:12px;"> 生成的 SQL 预览</summary>
-<pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap;">${esc(ti.generated_sql)}</pre>
+ ${ti.generated_sql ? `<details style="margin-top:6px;"><summary>生成的 SQL 预览</summary>
+<pre>${esc(ti.generated_sql)}</pre>
 </details>` : ''}
 </div>`;
  } else {
- targetHtml = `<div style="background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;">
-<div style="display:flex;flex-wrap:wrap;gap:12px;color:#374151;">
+ targetHtml = `<div class="target-box">
+<div class="target-row">
 <span>表名:<code>${esc(ti.table_name)}</code></span>
 <span>注释: ${esc(ti.table_comment||'-')}</span>
 <span>字段数: ${ti.field_count}</span>
@@ -102,11 +121,11 @@
  const requiredRole = NODE_ROLE[t.current_node];
  const canApprove = isAdmin || (requiredRole && roleCodes.includes(requiredRole));
  if (!canApprove) {
- actionHtml = `<div style="display:flex;gap:10px;align-items:center;color:#9ca3af;font-size:12px;">
+ actionHtml = `<div class="ticket-actions hint">
  当前节点需要「${({data_approver:'数据审批人',tech_approver:'技术审批人',biz_approver:'业务审批人'})[requiredRole]||requiredRole}」角色才能审批
 </div>`;
  } else {
- actionHtml = `<div style="display:flex;gap:10px;align-items:center;">
+ actionHtml = `<div class="ticket-actions">
 <button class="btn btn-primary" onclick="act(${t.id},'approve')">通过</button>
 <button class="btn btn-danger" onclick="act(${t.id},'reject')">驳回</button>
 <input id="cmt_${t.id}" placeholder="审批意见" style="flex:1;">
@@ -114,9 +133,9 @@
  }
  } else {
  // V1.5: 已结束工单显示删除按钮
- actionHtml = `<div style="display:flex;gap:10px;align-items:center;">
+ actionHtml = `<div class="ticket-actions">
 <button class="btn btn-secondary" onclick="delTicket(${t.id},'${esc(t.ticket_no)}')">删除</button>
-<span style="color:#9ca3af;font-size:12px;">工单已结束，可清理</span>
+<span class="hint">工单已结束，可清理</span>
 </div>`;
  }
 
@@ -134,9 +153,9 @@
 </div>
 <div class="ticket-body">
 ${targetHtml}
-<div style="color:var(--ink-500);font-size:12px;margin-bottom:10px;">创建时间: ${t.created_at}</div>
+<div style="color:var(--ink-500);font-size:11.5px;margin-bottom:10px;font-family:var(--font-mono);">创建时间: ${t.created_at}</div>
 <div style="margin-bottom:10px;">
- ${t.logs.slice(-3).map(l=>`<div style="color:var(--ink-600);font-size:12px;border-left:3px solid var(--navy-500);padding-left:10px;margin:3px 0;">
+ ${t.logs.slice(-3).map(l=>`<div class="log-entry">
  [${l.action}] ${l.node} ${esc(l.comment||'')} (${l.created_at})</div>`).join('')}
 </div>
 ${actionHtml}

@@ -19,8 +19,9 @@ demo_data:
   sqlite_path: "./data/insurance_demo.db"
 
 # 演示身份切换（V1.1）：免密切换到白名单用户，仅演示环境使用
+# V1.7 P0：默认关闭，且切换接口仅允许 admin 角色调用；演示环境需显式改为 true
 demo_switch:
-  enabled: true
+  enabled: false
   users: [admin, dap, tap, bap, normal]
 
 default_admin:
@@ -46,18 +47,33 @@ default_roles:
       - "metadata:edit"
       - "approval:view"
       - "approval:data_node"
+      - "relation:view"
+      - "enum:view"
+      - "datasource:view"
+      - "tag_task:view"
+      - "theme:view"
   - code: tech_approver
     name: "技术审批人"
     permissions:
       - "metadata:view"
       - "approval:view"
       - "approval:tech_node"
+      - "relation:view"
+      - "enum:view"
+      - "datasource:view"
+      - "tag_task:view"
+      - "theme:view"
   - code: biz_approver
     name: "业务审批人"
     permissions:
       - "metadata:view"
       - "approval:view"
       - "approval:biz_node"
+      - "relation:view"
+      - "enum:view"
+      - "datasource:view"
+      - "tag_task:view"
+      - "theme:view"
   - code: user
     name: "普通用户"
     permissions:
@@ -68,5 +84,9 @@ default_roles:
       - "enum:view"
       - "enum:edit"
       - "datasource:view"
+      - "datasource:edit"
       - "tag_task:view"
       - "tag_task:edit"
+      - "theme:view"
+      - "theme:edit"
+      - "approval:view"

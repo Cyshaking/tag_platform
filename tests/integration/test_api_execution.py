@@ -58,8 +58,8 @@ class TestExecutionAPI:
             r = client.post(f"/api/approvals/{ticket_id}/approve", headers=role_headers, json={"comment": "ok"})
             assert r.json()["code"] == 0
 
-        # 切回 admin
-        r = client.post("/api/auth/switch", headers=role_headers, json={"username": "admin"})
+        # 切回 admin（V1.7：身份切换仅允许 admin 发起，使用 admin 自身 token）
+        r = client.post("/api/auth/switch", headers=auth_headers, json={"username": "admin"})
         token = r.json()["data"]["access_token"]
         auth_headers = {"Authorization": f"Bearer {token}"}
 

@@ -1,59 +1,259 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 标签配置平台 - 首页</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAG//OPS · 首页</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 <style>
- /* V1.3: header/nav/body 样式交给 main.css + CSS 变量主题系统；只保留 dashboard 专属样式 */
- .container { padding: 30px; max-width: 1200px; margin: 0 auto; }
- .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
- .card { background: var(--card-bg, #fff); padding: 24px; border-radius: 8px; box-shadow: var(--card-shadow, 0 2px 12px rgba(0,0,0,0.08)); transition: transform .2s; }
- .card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
- .card h3 { color: var(--text-primary, #333); font-size: 16px; margin-bottom: 8px; }
- .card p { color: var(--text-muted, var(--ink-500)); font-size: 13px; }
- .card .icon { font-size: 32px; margin-bottom: 12px; }
- .card a { color: inherit; text-decoration: none; display: block; }
+  .dash-strip{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    border:1px solid var(--line);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    margin-bottom:28px;overflow:hidden;
+  }
+  .dash-strip .cell{padding:14px 18px;border-right:1px solid var(--line-soft);min-width:0}
+  .dash-strip .cell:last-child{border-right:none}
+  .dash-strip .k{
+    display:block;font-family:var(--font-mono);font-size:9.5px;
+    letter-spacing:.22em;color:var(--ink-400);
+  }
+  .dash-strip b{
+    display:block;margin-top:5px;
+    font-family:var(--font-display);font-size:16px;font-weight:600;
+    letter-spacing:.05em;color:var(--ink-900);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .dash-strip em{display:block;font-style:normal;font-size:11px;color:var(--ink-500);margin-top:1px}
+
+  .sec-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin:0 0 14px;
+  }
+  .sec-head h3{margin:0}
+  .sec-head .sec-code{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;color:var(--ink-400)}
+
+  .modules{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));
+    gap:14px;margin-bottom:30px;
+  }
+  .module{
+    position:relative;display:flex;flex-direction:column;gap:9px;
+    padding:18px 18px 40px;min-height:150px;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    color:inherit;text-decoration:none;overflow:hidden;
+    transition:transform .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);
+  }
+  .module::before{
+    content:"";position:absolute;left:0;top:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--accent),rgba(53,224,192,0));
+    opacity:0;transition:opacity .2s var(--ease);
+  }
+  .module::after{
+    content:"";position:absolute;right:-30px;bottom:-30px;width:110px;height:110px;
+    border:1px solid rgba(53,224,192,.10);border-radius:50%;
+    opacity:0;transition:opacity .25s var(--ease);
+  }
+  .module:hover{
+    transform:translateY(-3px);border-color:rgba(53,224,192,.42);
+    box-shadow:0 18px 40px -28px #000,inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .module:hover::before{opacity:1}
+  .module:hover::after{opacity:1}
+  .m-top{display:flex;align-items:center;justify-content:space-between}
+  .m-idx{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;color:var(--ink-400)}
+  .m-dot{
+    width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.55;
+    box-shadow:0 0 8px rgba(53,224,192,.7);
+  }
+  .m-title{
+    display:flex;align-items:center;gap:8px;
+    font-family:var(--font-display);font-size:17px;font-weight:600;
+    letter-spacing:.05em;color:var(--ink-900);
+  }
+  .m-desc{flex:1;font-size:12.5px;line-height:1.7;color:var(--ink-600)}
+  .m-foot{display:flex;flex-wrap:wrap;gap:6px}
+  .m-tag{
+    font-family:var(--font-mono);font-size:9.5px;letter-spacing:.08em;
+    color:var(--ink-500);border:1px solid var(--line);
+    padding:1px 6px;border-radius:2px;background:rgba(255,255,255,.015);
+  }
+  .m-arrow{
+    position:absolute;right:16px;bottom:13px;
+    font-family:var(--font-mono);font-size:13px;color:var(--ink-400);
+    transition:color .18s var(--ease),transform .18s var(--ease);
+  }
+  .module:hover .m-arrow{color:var(--accent);transform:translateX(4px)}
+
+  .flow{
+    display:flex;flex-wrap:wrap;
+    border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel);overflow:hidden;
+  }
+  .flow .step{
+    flex:1;min-width:170px;padding:14px 16px;
+    border-right:1px solid var(--line-soft);
+    position:relative;
+  }
+  .flow .step:last-child{border-right:none}
+  .flow .step .n{
+    font-family:var(--font-mono);font-size:9.5px;letter-spacing:.22em;
+    color:var(--accent);margin-bottom:5px;display:block;
+  }
+  .flow .step .t{font-size:12.5px;font-weight:600;color:var(--ink-800);letter-spacing:.03em}
+  .flow .step .d{font-size:11px;color:var(--ink-500);margin-top:2px}
+
+  @media (max-width:900px){
+    .dash-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .dash-strip .cell:nth-child(2){border-right:none}
+    .dash-strip .cell:nth-child(-n+2){border-bottom:1px solid var(--line-soft)}
+  }
+  @media (max-width:560px){
+    .dash-strip{grid-template-columns:1fr}
+    .dash-strip .cell{border-right:none;border-bottom:1px solid var(--line-soft)}
+    .dash-strip .cell:last-child{border-bottom:none}
+    .modules{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 <div class="header">
-<h1>标签管理配置平台演示系统</h1>
-<div class="user">
-<span id="userName"></span>
-<a href="#" onclick="logout()">退出</a>
-</div>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="brand-name">TAG<em>//</em>OPS</span>
+    <span class="brand-sub">标签管理配置平台</span>
+  </div>
+  <div class="user">
+    <span id="userName"></span>
+    <a href="#" onclick="logout()">退出</a>
+  </div>
 </div>
 <div class="nav">
-<a href="/static/dashboard.html">首页</a>
-<a href="/static/metadata.html">元数据</a>
-<a href="/static/themes.html">业务主题</a>
-<a href="/static/relations.html">表关系</a>
-<a href="/static/enum_config.html">枚举</a>
-<a href="/static/datasources.html">数据源</a>
-<a href="/static/approvals.html">审批</a>
-<a href="/static/tag_tasks.html">标签任务</a>
-<a href="/static/users.html" data-perm="admin:only">用户角色</a>
-<a href="/static/log_center.html" data-perm="admin:only">日志管理</a>
+  <a href="/static/dashboard.html">首页</a>
+  <a href="/static/metadata.html">元数据</a>
+  <a href="/static/themes.html">业务主题</a>
+  <a href="/static/relations.html">表关系</a>
+  <a href="/static/enum_config.html">枚举</a>
+  <a href="/static/datasources.html">数据源</a>
+  <a href="/static/approvals.html">审批</a>
+  <a href="/static/tag_tasks.html">标签任务</a>
+  <a href="/static/users.html" data-perm="admin:only">用户角色</a>
+  <a href="/static/log_center.html" data-perm="admin:only">日志管理</a>
 </div>
 
 <div class="container">
-<div class="grid">
-<div class="card"><a href="/static/metadata.html"><div class="icon"></div><h3>元数据接入</h3><p>录入表/字段，支持 Excel 导入</p></a></div>
-<div class="card"><a href="/static/relations.html"><div class="icon"></div><h3>表关系配置</h3><p>配置多表 JOIN 关联规则</p></a></div>
-<div class="card"><a href="/static/enum_config.html"><div class="icon"></div><h3>字段枚举</h3><p>维护字段的枚举值映射</p></a></div>
-<div class="card"><a href="/static/datasources.html"><div class="icon"></div><h3>数据源管理</h3><p>sqlite / spark 两类数据源</p></a></div>
-<div class="card"><a href="/static/approvals.html"><div class="icon"></div><h3>审批工单<span id="pendCardBadge" class="pend-card-badge"></span></h3><p>三级审批：数据/技术/业务</p></a></div>
-<div class="card"><a href="/static/tag_tasks.html"><div class="icon"></div><h3>标签任务</h3><p>配置任务、预览 SQL、提交执行</p></a></div>
-</div>
+  <h2>控制台总览</h2>
+
+  <div class="dash-strip">
+    <div class="cell">
+      <span class="k">OPERATOR</span>
+      <b id="dashUser">—</b>
+      <em>当前登录身份</em>
+    </div>
+    <div class="cell">
+      <span class="k">ROLE</span>
+      <b id="dashRole">—</b>
+      <em>角色权限</em>
+    </div>
+    <div class="cell">
+      <span class="k">RELEASE</span>
+      <b>V1.7</b>
+      <em>安全加固版本</em>
+    </div>
+    <div class="cell">
+      <span class="k">MODULES</span>
+      <b>10</b>
+      <em>可用功能模块</em>
+    </div>
+  </div>
+
+  <div class="sec-head">
+    <h3>功能模块</h3>
+    <span class="sec-code">MODULES // 01-06</span>
+  </div>
+
+  <div class="modules">
+    <a class="module" href="/static/metadata.html">
+      <div class="m-top"><span class="m-idx">M-01</span><span class="m-dot"></span></div>
+      <div class="m-title">元数据接入</div>
+      <div class="m-desc">录入表与字段定义，支持 Excel 批量导入与字段详情查看。</div>
+      <div class="m-foot"><span class="m-tag">TABLE</span><span class="m-tag">FIELD</span><span class="m-tag">EXCEL</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+    <a class="module" href="/static/relations.html">
+      <div class="m-top"><span class="m-idx">M-02</span><span class="m-dot"></span></div>
+      <div class="m-title">表关系配置</div>
+      <div class="m-desc">配置多表 JOIN 关联规则，为标签 SQL 自动拼接关联条件。</div>
+      <div class="m-foot"><span class="m-tag">JOIN</span><span class="m-tag">INNER</span><span class="m-tag">LEFT</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+    <a class="module" href="/static/enum_config.html">
+      <div class="m-top"><span class="m-idx">M-03</span><span class="m-dot"></span></div>
+      <div class="m-title">字段枚举</div>
+      <div class="m-desc">维护字段的枚举编码与含义，用于标签条件与 IN 过滤。</div>
+      <div class="m-foot"><span class="m-tag">ENUM</span><span class="m-tag">CODE</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+    <a class="module" href="/static/datasources.html">
+      <div class="m-top"><span class="m-idx">M-04</span><span class="m-dot"></span></div>
+      <div class="m-title">数据源管理</div>
+      <div class="m-desc">维护 SQLite / Spark 数据源，支持连接测试与启停。</div>
+      <div class="m-foot"><span class="m-tag">SQLITE</span><span class="m-tag">SPARK</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+    <a class="module" href="/static/approvals.html">
+      <div class="m-top"><span class="m-idx">M-05</span><span class="m-dot"></span></div>
+      <div class="m-title">审批工单<span id="pendCardBadge" class="pend-card-badge"></span></div>
+      <div class="m-desc">元数据与标签任务的三级审批：数据 → 技术 → 业务。</div>
+      <div class="m-foot"><span class="m-tag">APPROVAL</span><span class="m-tag">3-STAGE</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+    <a class="module" href="/static/tag_tasks.html">
+      <div class="m-top"><span class="m-idx">M-06</span><span class="m-dot"></span></div>
+      <div class="m-title">标签任务</div>
+      <div class="m-desc">字段配置或 SQL 直配，预览生成的 SQL 并提交执行。</div>
+      <div class="m-foot"><span class="m-tag">TASK</span><span class="m-tag">SQL</span><span class="m-tag">EXEC</span></div>
+      <span class="m-arrow">→</span>
+    </a>
+  </div>
+
+  <div class="sec-head">
+    <h3>链路概览</h3>
+    <span class="sec-code">PIPELINE // FLOW</span>
+  </div>
+  <div class="flow">
+    <div class="step"><span class="n">STEP 01</span><div class="t">元数据接入</div><div class="d">表 / 字段登记</div></div>
+    <div class="step"><span class="n">STEP 02</span><div class="t">业务主题</div><div class="d">绑定主题表</div></div>
+    <div class="step"><span class="n">STEP 03</span><div class="t">标签任务</div><div class="d">条件 / SQL 配置</div></div>
+    <div class="step"><span class="n">STEP 04</span><div class="t">三级审批</div><div class="d">数据 / 技术 / 业务</div></div>
+    <div class="step"><span class="n">STEP 05</span><div class="t">执行审计</div><div class="d">执行记录与日志</div></div>
+  </div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
- if (!checkLogin()) document.location.href = '/static/index.html';
- const user = JSON.parse(localStorage.getItem('user') || '{}');
- document.getElementById('userName').textContent = user.display_name || user.username || 'Guest';
- function logout() { clearToken(); localStorage.clear(); document.location.href = '/static/index.html'; }
+  if (!checkLogin()) document.location.href = '/static/index.html';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  document.getElementById('userName').textContent = user.display_name || user.username || 'Guest';
+  document.getElementById('dashUser').textContent = user.display_name || user.username || 'Guest';
+  document.getElementById('dashRole').textContent =
+    (user.roles || []).map(r => r.name || r.code).join(' / ') || '—';
+  function logout() { clearToken(); localStorage.clear(); document.location.href = '/static/index.html'; }
 </script>
 </body>
 </html>

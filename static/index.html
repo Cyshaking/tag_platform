@@ -2,79 +2,266 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 登录</title>
-<link rel="stylesheet" href="./css/main.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAG//OPS · 标签管理配置平台</title>
+<link rel="stylesheet" href="./css/main.css?v=200">
 <style>
- * { margin: 0; padding: 0; box-sizing: border-box; }
- /* 本地 file:// 协议下 CSS 变量需要先定义（main.css 在同目录下） */
- :root{
- --navy-700:#1f4d80; --navy-950:#0f2740; --navy-600:#2a5f96; --navy-500:#3d76ad;
- --ink-900:#132033; --ink-800:#22304a; --ink-700:#33415c; --ink-600:#4a5975;
- --ink-500:#64748b; --ink-400:#8b98ab;
- --line:#e3e8ef; --surface:#ffffff; --danger:#b42318;
- --radius:8px; --radius-sm:4px;
- --shadow-md:0 14px 30px -18px rgba(16,35,56,.45);
- --font-sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
- --ease:cubic-bezier(.22,.61,.36,1);
- }
- body { font-family:var(--font-sans); background:linear-gradient(135deg,var(--navy-700) 0%,var(--navy-950) 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; }
- .login-box { background:var(--surface); padding:40px; border-radius:var(--radius); box-shadow:var(--shadow-md); width:380px; }
- h1 { text-align:center; color:var(--ink-900); margin-bottom:30px; font-size:22px; font-weight:600; letter-spacing:.02em; }
- .field { margin-bottom:18px; }
- label { display:block; color:var(--ink-700); margin-bottom:6px; font-size:14px; font-weight:500; }
- input { width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--radius-sm); font-size:14px; background:#fff; color:var(--ink-800); }
- input:focus { border-color:var(--navy-600); outline:none; box-shadow:0 0 0 3px rgba(42,95,150,.12); }
- button { width:100%; padding:12px; background:var(--navy-700); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; cursor:pointer; font-weight:500; box-shadow:0 1px 2px rgba(16,35,56,.15); transition:background .18s var(--ease); }
- button:hover { background:#194268; }
- .error { color:var(--danger); text-align:center; margin-top:15px; font-size:14px; display:none; }
- .hint { text-align:center; color:var(--ink-500); font-size:12px; margin-top:15px; }
- @media (max-width:480px){ .login-box{ width:calc(100vw - 32px); padding:28px; } }
+  body.login-page{padding-top:0;overflow-x:hidden}
+  .login-shell{
+    position:relative;z-index:1;min-height:100vh;
+    display:grid;grid-template-columns:1.12fr .88fr;
+  }
+
+  /* ---------- 左：品牌 / 系统标识 ---------- */
+  .brand-panel{
+    position:relative;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:52px 64px 44px;
+    border-right:1px solid var(--line);
+    background:
+      radial-gradient(760px 460px at 18% 6%,rgba(53,224,192,.10),transparent 62%),
+      linear-gradient(180deg,#0a0f14 0%,#080b0f 100%);
+  }
+  .brand-panel::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(900px 700px at 30% 20%,#000 20%,transparent 82%);
+    mask-image:radial-gradient(900px 700px at 30% 20%,#000 20%,transparent 82%);
+  }
+  .brand-panel::after{
+    content:"";position:absolute;right:-140px;top:-140px;width:420px;height:420px;
+    border:1px solid rgba(53,224,192,.10);border-radius:50%;
+    box-shadow:0 0 90px rgba(53,224,192,.06) inset;
+    pointer-events:none;
+  }
+  .brand-panel .scan{
+    position:absolute;left:0;right:0;top:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(53,224,192,.55),transparent);
+    opacity:.5;animation:scan 7s linear infinite;pointer-events:none;
+  }
+  @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(100vh)}}
+
+  .brand-top{position:relative;display:flex;align-items:center;gap:13px}
+  .brand-top .mark{
+    width:30px;height:30px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;
+  }
+  .brand-top .mark i{background:var(--accent)}
+  .brand-top .mark i:nth-child(2),.brand-top .mark i:nth-child(3){opacity:.5}
+  .brand-top .mark i:nth-child(4){background:var(--amber);opacity:.85}
+  .brand-top .word{
+    font-family:var(--font-display);font-size:17px;font-weight:700;letter-spacing:.2em;color:#fff;
+  }
+  .brand-top .word em{font-style:normal;color:var(--accent)}
+  .brand-top .tagline{
+    margin-left:6px;padding-left:14px;border-left:1px solid var(--line-strong);
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;color:var(--ink-500);
+  }
+
+  .brand-core{position:relative;margin:8vh 0}
+  .brand-core .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.26em;color:var(--accent);
+    margin-bottom:22px;
+  }
+  .brand-core .eyebrow::before{
+    content:"";width:26px;height:1px;background:var(--accent);box-shadow:0 0 10px var(--accent);
+  }
+  .brand-core h2{
+    font-family:var(--font-display);
+    font-size:clamp(40px,5.2vw,68px);
+    line-height:1.04;letter-spacing:.03em;font-weight:600;
+    color:var(--ink-900);
+  }
+  .brand-core h2 .accent{
+    display:block;color:var(--accent);
+    text-shadow:0 0 32px rgba(53,224,192,.28);
+  }
+  .brand-core p{
+    margin-top:20px;max-width:440px;
+    color:var(--ink-600);font-size:13.5px;line-height:1.9;
+  }
+  .brand-core .rule{
+    margin-top:26px;height:1px;max-width:460px;
+    background:linear-gradient(90deg,rgba(53,224,192,.45),rgba(53,224,192,.03));
+  }
+
+  .brand-meta{
+    position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    max-width:560px;border-top:1px solid var(--line);padding-top:16px;
+  }
+  .brand-meta div{padding-right:16px}
+  .brand-meta span{
+    display:block;font-family:var(--font-mono);font-size:9.5px;
+    letter-spacing:.2em;color:var(--ink-400);margin-bottom:4px;
+  }
+  .brand-meta b{
+    font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+    letter-spacing:.08em;color:var(--ink-700);
+  }
+
+  /* ---------- 右：登录终端 ---------- */
+  .login-panel{
+    position:relative;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:48px 40px;
+    background:linear-gradient(180deg,rgba(12,17,23,.6),rgba(8,11,15,.9));
+  }
+  .login-card{
+    position:relative;width:min(398px,100%);
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line-strong);
+    border-radius:var(--radius);
+    padding:34px 32px 28px;
+    box-shadow:0 40px 90px -40px #000;
+  }
+  .login-card::before{
+    content:"";position:absolute;left:-1px;top:-1px;width:20px;height:20px;
+    border-left:1px solid var(--accent);border-top:1px solid var(--accent);
+    border-top-left-radius:var(--radius);
+  }
+  .login-card::after{
+    content:"";position:absolute;right:-1px;bottom:-1px;width:20px;height:20px;
+    border-right:1px solid var(--amber);border-bottom:1px solid var(--amber);
+    border-bottom-right-radius:var(--radius);opacity:.6;
+  }
+  .card-kicker{
+    font-family:var(--font-mono);font-size:9.5px;letter-spacing:.28em;
+    color:var(--accent);margin-bottom:14px;
+  }
+  .login-card h1{
+    font-family:var(--font-display);font-size:27px;font-weight:600;
+    letter-spacing:.06em;color:var(--ink-900);line-height:1.2;
+  }
+  .login-sub{color:var(--ink-500);font-size:12.5px;margin:8px 0 24px}
+  .field{margin-bottom:16px}
+  .field label{
+    display:flex;justify-content:space-between;gap:8px;
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;
+    color:var(--ink-500);margin-bottom:7px;
+  }
+  .field label em{font-style:normal;color:var(--ink-400)}
+  .field input{
+    height:42px;padding:0 12px;font-size:13.5px;
+    background:var(--panel-3);border-color:var(--line-strong);
+  }
+  .login-card button{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:100%;height:44px;margin-top:6px;
+    border:none;border-radius:var(--radius-sm);
+    background:var(--accent);color:#04110e;
+    font-family:inherit;font-size:13.5px;font-weight:700;letter-spacing:.12em;
+    cursor:pointer;transition:background .16s var(--ease),box-shadow .16s var(--ease),transform .1s var(--ease);
+  }
+  .login-card button:hover{background:var(--accent-2);box-shadow:0 0 26px rgba(53,224,192,.3)}
+  .login-card button:active{transform:translateY(1px)}
+  .login-card button .arr{font-family:var(--font-mono);font-weight:400;transition:transform .16s var(--ease)}
+  .login-card button:hover .arr{transform:translateX(4px)}
+  .error{
+    display:none;margin-top:14px;padding:8px 12px;
+    background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.32);
+    border-left:2px solid var(--red);
+    color:#ffb3b3;font-size:12px;line-height:1.6;
+  }
+  .login-hint{
+    margin-top:20px;padding-top:14px;border-top:1px solid var(--line-soft);
+    text-align:center;font-family:var(--font-mono);font-size:10.5px;
+    letter-spacing:.06em;color:var(--ink-400);
+  }
+  .login-foot{
+    margin-top:26px;font-family:var(--font-mono);font-size:9.5px;
+    letter-spacing:.2em;color:var(--ink-400);text-align:center;
+  }
+
+  @media (max-width:900px){
+    .login-shell{grid-template-columns:1fr}
+    .brand-panel{border-right:none;border-bottom:1px solid var(--line);padding:34px 26px 30px}
+    .brand-core{margin:34px 0}
+    .brand-core h2{font-size:40px}
+    .brand-meta{display:none}
+    .login-panel{padding:38px 18px 48px}
+  }
+  @media (max-width:520px){
+    .brand-top .tagline{display:none}
+    .brand-core h2{font-size:32px}
+  }
 </style>
 </head>
-<body>
-<div class="login-box">
-<h1>标签管理配置平台演示系统</h1>
-<form id="loginForm">
-<div class="field">
-<label>用户名</label>
-<input type="text" id="username" value="admin" required>
-</div>
-<div class="field">
-<label>密码</label>
-<input type="password" id="password" value="admin123" required>
-</div>
-<button type="submit">登录</button>
-<div class="error" id="errMsg"></div>
-</form>
-<p class="hint">默认账号: admin / admin123</p>
+<body class="login-page">
+<div class="login-shell">
+  <section class="brand-panel">
+    <span class="scan" aria-hidden="true"></span>
+    <div class="brand-top">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="word">TAG<em>//</em>OPS</span>
+      <span class="tagline">TAG MANAGEMENT PLATFORM</span>
+    </div>
+
+    <div class="brand-core">
+      <span class="eyebrow">DATA TAGGING CONTROL</span>
+      <h2>标签管理<span class="accent">配置平台</span></h2>
+      <p>从元数据接入到标签任务执行的全链路控制台：表关系、字段枚举、三级审批与执行审计，一处配置，全程可追溯。</p>
+      <div class="rule"></div>
+    </div>
+
+    <div class="brand-meta">
+      <div><span>RELEASE</span><b>V1.7</b></div>
+      <div><span>SECURITY</span><b>P0 HARDENED</b></div>
+      <div><span>ACCESS</span><b>RESTRICTED</b></div>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <div class="card-kicker">ACCESS TERMINAL</div>
+      <h1>身份验证</h1>
+      <p class="login-sub">请输入平台账号以进入控制台</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">用户名 <em>USERNAME</em></label>
+          <input type="text" id="username" value="admin" required autocomplete="username" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="password">密码 <em>PASSWORD</em></label>
+          <input type="password" id="password" value="admin123" required autocomplete="current-password">
+        </div>
+        <button type="submit"><span>进入控制台</span><span class="arr">→</span></button>
+        <div class="error" id="errMsg"></div>
+      </form>
+      <p class="login-hint">默认账号 admin / admin123</p>
+    </div>
+    <div class="login-foot">TAG//OPS · CONFIGURATION PLATFORM</div>
+  </section>
 </div>
 
 <script>
- document.getElementById('loginForm').addEventListener('submit', async e => {
- e.preventDefault();
- const username = document.getElementById('username').value.trim();
- const password = document.getElementById('password').value;
- const errEl = document.getElementById('errMsg');
- errEl.style.display = 'none';
- try {
- const resp = await fetch('/api/auth/login', {
- method: 'POST', headers: {'Content-Type': 'application/json'},
- body: JSON.stringify({ username, password })
- });
- const data = await resp.json();
- if (data.code === 0) {
- localStorage.setItem('token', data.data.access_token);
- localStorage.setItem('user', JSON.stringify(data.data.user));
- window.location.href = '/static/dashboard.html';
- } else {
- errEl.textContent = data.message;
- errEl.style.display = 'block';
- }
- } catch (err) {
- errEl.textContent = '网络错误: ' + err.message;
- errEl.style.display = 'block';
- }
- });
+  document.getElementById('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('errMsg');
+    errEl.style.display = 'none';
+    try {
+      const resp = await fetch('/api/auth/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username, password })
+      });
+      const data = await resp.json();
+      if (data.code === 0) {
+        localStorage.setItem('token', data.data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        window.location.href = '/static/dashboard.html';
+      } else {
+        errEl.textContent = data.message;
+        errEl.style.display = 'block';
+      }
+    } catch (err) {
+      errEl.textContent = '网络错误: ' + err.message;
+      errEl.style.display = 'block';
+    }
+  });
 </script>
 </body>
 </html>

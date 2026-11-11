@@ -24,9 +24,26 @@ from sqlalchemy.orm import sessionmaker
 @pytest.fixture(scope="function")
 def client() -> TestClient:
     """
-    每个测试启动独立应用 + 内存 DB
+    每个测试启动独立应用 + 内存 DB。
+
+    V1.7 P0：全部接口默认要求登录，集成测试默认以 admin 身份调用；
+    需要验证未认证行为的用例请使用 anon_client。
     """
+    yield from _build_client(with_admin_token=True)
+
+
+@pytest.fixture(scope="function")
+def anon_client() -> TestClient:
+    """未注入 Token 的客户端，用于验证 401 鉴权行为"""
+    yield from _build_client(with_admin_token=False)
+
+
+def _build_client(with_admin_token: bool) -> TestClient:
     import app.db.database as db_mod
+
+    # 集成测试覆盖演示身份切换链路；config.yaml 默认 false 是生产基线
+    from app.config import DemoSwitchConfig
+    DemoSwitchConfig.enabled = True
 
     # ====== 步骤 1：确保所有 models 已注册到 Base.metadata ======
     import app.db.models  # noqa: F401 — 触发 models/__init__.py
@@ -62,6 +79,10 @@ def client() -> TestClient:
     app = create_app()
 
     with TestClient(app) as c:
+        if with_admin_token:
+            r = c.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+            assert r.status_code == 200 and r.json()["code"] == 0
+            c.headers["Authorization"] = "Bearer " + r.json()["data"]["access_token"]
         yield c
 
     # 清理

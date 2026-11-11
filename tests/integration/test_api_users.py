@@ -37,8 +37,8 @@ class TestPermissionGate:
         assert r.status_code == 403
         assert r.json()["code"] == 403
 
-    def test_anonymous_rejected(self, client):
-        assert client.get("/api/users").status_code == 401
+    def test_anonymous_rejected(self, anon_client):
+        assert anon_client.get("/api/users").status_code == 401
 
 
 class TestRoleCrud:
@@ -195,5 +195,5 @@ class TestIdentitySwitch:
                         headers=auth_headers).json()
         assert r["code"] != 0
 
-    def test_switch_requires_login(self, client):
-        assert client.post("/api/auth/switch", json={"username": "dap"}).status_code == 401
+    def test_switch_requires_login(self, anon_client):
+        assert anon_client.post("/api/auth/switch", json={"username": "dap"}).status_code == 401

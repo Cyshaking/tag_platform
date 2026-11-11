@@ -1,84 +1,84 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>日志管理 - 标签管理配置平台</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 日志管理</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 <style>
-  .log-tabs { display:flex; border-bottom:2px solid var(--line); margin-bottom:20px; }
-  .log-tabs button {
-    flex:1; padding:12px 20px; background:none; border:none;
-    font-size:15px; font-weight:500; color:var(--ink-500);
-    cursor:pointer; border-bottom:3px solid transparent;
-    transition:all .18s var(--ease);
-    box-shadow:none; width:auto;
+  .log-tabs{
+    display:flex;gap:2px;padding:4px;margin-bottom:18px;width:fit-content;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
   }
-  .log-tabs button:hover { color:var(--ink-800); background:none; }
-  .log-tabs button.active { color:var(--navy-700); border-bottom-color:var(--navy-700); }
+  .log-tabs button{
+    appearance:none;border:none;background:transparent;
+    padding:7px 22px;border-radius:2px;cursor:pointer;
+    font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.04em;
+    color:var(--ink-600);transition:color .16s var(--ease),background .16s var(--ease);
+  }
+  .log-tabs button:hover{color:var(--ink-800);background:rgba(255,255,255,.03)}
+  .log-tabs button.active{color:#04110e;background:var(--accent);box-shadow:0 0 18px rgba(53,224,192,.25)}
 
-  .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; align-items:center; }
-  .filter-bar input, .filter-bar select {
-    padding:7px 10px; border:1px solid var(--line); border-radius:var(--radius-sm);
-    font-size:13px; background:#fff; color:var(--ink-800);
-  }
-  .filter-bar button {
-    padding:7px 18px; background:var(--navy-700); color:#fff; border:none;
-    border-radius:var(--radius-sm); font-size:13px; cursor:pointer; width:auto;
-  }
-  .filter-bar button:hover { background:#194268; }
-  .filter-bar button.ghost { background:#fff; color:var(--ink-700); border:1px solid var(--line); }
-  .filter-bar button.ghost:hover { background:var(--ink-50); color:var(--ink-800); }
+  .filter-bar button{height:32px;padding:0 14px;font-size:12.5px}
 
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--line); }
-  th { background:#f8fafc; font-weight:600; color:var(--ink-700); white-space:nowrap; }
-  td { color:var(--ink-800); }
-  tr:hover td { background:#f8fafc; }
-
-  .tag {
-    display:inline-block; padding:2px 8px; border-radius:10px;
-    font-size:11px; font-weight:500;
+  .tag{
+    display:inline-block;padding:1px 8px;border-radius:2px;
+    font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.06em;
+    border:1px solid transparent;
   }
-  .tag-info { background:#e7f5f2; color:#0f766e; }
-  .tag-warn { background:#fef3c7; color:#b45309; }
-  .tag-error { background:#fee2e2; color:#b91c1c; }
-  .tag-debug { background:#e2e8f0; color:#475569; }
+  .tag-info{background:rgba(53,224,192,.10);color:var(--accent);border-color:rgba(53,224,192,.28)}
+  .tag-warn{background:rgba(255,180,84,.10);color:var(--amber);border-color:rgba(255,180,84,.28)}
+  .tag-error{background:rgba(255,107,107,.10);color:var(--red);border-color:rgba(255,107,107,.28)}
+  .tag-debug{background:rgba(255,255,255,.04);color:var(--ink-500);border-color:var(--line-strong)}
 
-  .action-CREATE { background:#dbeafe; color:#1d4ed8; }
-  .action-UPDATE { background:#fef3c7; color:#b45309; }
-  .action-DELETE { background:#fee2e2; color:#b91c1c; }
-  .action-SUBMIT_APPROVAL { background:#e0e7ff; color:#4338ca; }
-  .action-APPROVE { background:#d1fae5; color:#047857; }
-  .action-REJECT { background:#fee2e2; color:#b91c1c; }
-  .action-EXECUTE { background:#fae8ff; color:#a21caf; }
-  .action-LOGIN { background:#d1fae5; color:#047857; }
-  .action-SWITCH { background:#e0e7ff; color:#4338ca; }
+  .tag.action-CREATE,.tag.action-LOGIN{background:rgba(87,227,137,.10);color:var(--green);border-color:rgba(87,227,137,.28)}
+  .tag.action-UPDATE{background:rgba(255,180,84,.10);color:var(--amber);border-color:rgba(255,180,84,.28)}
+  .tag.action-DELETE,.tag.action-REJECT{background:rgba(255,107,107,.10);color:var(--red);border-color:rgba(255,107,107,.28)}
+  .tag.action-SUBMIT_APPROVAL,.tag.action-SWITCH{background:rgba(106,169,255,.10);color:var(--blue);border-color:rgba(106,169,255,.28)}
+  .tag.action-APPROVE{background:rgba(53,224,192,.10);color:var(--accent);border-color:rgba(53,224,192,.28)}
+  .tag.action-EXECUTE{background:rgba(53,224,192,.07);color:var(--accent-2);border-color:rgba(53,224,192,.22)}
 
-  .pagination {
-    display:flex; gap:8px; align-items:center; justify-content:flex-end;
-    margin-top:15px; font-size:13px; color:var(--ink-600);
+  .pagination{
+    display:flex;gap:10px;align-items:center;justify-content:flex-end;
+    margin-top:14px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-500);
   }
-  .pagination button {
-    padding:5px 12px; border:1px solid var(--line); background:#fff;
-    border-radius:var(--radius-sm); cursor:pointer; font-size:13px;
-    color:var(--ink-700);
+  .pagination button{
+    height:28px;padding:0 12px;cursor:pointer;font-family:inherit;font-size:11.5px;
+    background:transparent;border:1px solid var(--line-strong);
+    border-radius:2px;color:var(--ink-700);
+    transition:color .15s var(--ease),border-color .15s var(--ease);
   }
-  .pagination button:hover:not(:disabled) { border-color:var(--navy-600); color:var(--navy-700); }
-  .pagination button:disabled { opacity:.5; cursor:not-allowed; }
+  .pagination button:hover:not(:disabled){border-color:rgba(53,224,192,.5);color:var(--accent)}
+  .pagination button:disabled{opacity:.35;cursor:not-allowed}
 
-  .cell-detail {
-    max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  td.message { max-width:400px; word-break:break-all; white-space:normal; }
-  td.detail { max-width:300px; word-break:break-all; white-space:normal; }
+  .cell-detail{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  td.message{max-width:400px;word-break:break-all;white-space:normal}
+  td.detail{max-width:300px;word-break:break-all;white-space:normal}
+  td.empty-cell{text-align:center;color:var(--ink-500);padding:30px}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>标签管理配置平台演示系统</h1>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="brand-name">TAG<em>//</em>OPS</span>
+    <span class="brand-sub">标签管理配置平台</span>
+  </div>
   <div class="user"><span id="currentUser"></span>
-    <select id="switchSel" style="display:none"></select>
     <a href="#" onclick="logout()">退出</a>
   </div>
 </div>
@@ -97,7 +97,7 @@
 
 <div class="container">
   <h2>日志管理</h2>
-  <p style="color:var(--ink-500);font-size:13px;margin-bottom:5px;">系统内置全链路审计能力，仅管理员可见。</p>
+  <p class="page-desc" style="margin-bottom:16px;">系统内置全链路审计能力，仅管理员可见。</p>
 
   <!-- Tab 切换 -->
   <div class="log-tabs">
@@ -123,9 +123,10 @@
       </select>
       <input type="date" id="faStart">
       <input type="date" id="faEnd">
-      <button onclick="loadActionLogs()">查询</button>
-      <button class="ghost" onclick="resetActionFilter()">重置</button>
+      <button class="btn btn-primary" onclick="loadActionLogs()">查询</button>
+      <button class="btn btn-secondary" onclick="resetActionFilter()">重置</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead>
         <tr>
@@ -141,6 +142,7 @@
       </thead>
       <tbody id="tbodyAction"></tbody>
     </table>
+    </div>
     <div class="pagination" id="pagAction"></div>
   </div>
 
@@ -155,9 +157,10 @@
       <input type="number" id="fsUser" placeholder="操作人 user_id" style="width:120px;">
       <input type="date" id="fsStart">
       <input type="date" id="fsEnd">
-      <button onclick="loadSystemLogs()">查询</button>
-      <button class="ghost" onclick="resetSystemFilter()">重置</button>
+      <button class="btn btn-primary" onclick="loadSystemLogs()">查询</button>
+      <button class="btn btn-secondary" onclick="resetSystemFilter()">重置</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead>
         <tr>
@@ -170,11 +173,12 @@
       </thead>
       <tbody id="tbodySystem"></tbody>
     </table>
+    </div>
     <div class="pagination" id="pagSystem"></div>
   </div>
 </div>
 
-<script src="/static/js/common.js"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
 const API = '/api';
 let currentTab = 'action';
@@ -216,7 +220,7 @@ async function loadActionLogs(p=pageAction) {
   const data = await resp.json();
   const tbody = document.getElementById('tbodyAction');
   if (data.code !== 0 || !data.data.items.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink-500);padding:30px;">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">暂无数据</td></tr>';
     document.getElementById('pagAction').innerHTML = '';
     return;
   }
@@ -264,7 +268,7 @@ async function loadSystemLogs(p=pageSystem) {
   const data = await resp.json();
   const tbody = document.getElementById('tbodySystem');
   if (data.code !== 0 || !data.data.items.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-500);padding:30px;">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">暂无数据</td></tr>';
     document.getElementById('pagSystem').innerHTML = '';
     return;
   }

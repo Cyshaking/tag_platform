@@ -42,14 +42,16 @@ def submit(req: ExecutionSubmitRequest,
 
 @router.get("/records")
 def list_records(tag_task_id: Optional[int] = None, status: Optional[str] = None,
-                  limit: int = 100, db: Session = Depends(get_db)):
+                  limit: int = 100, current_user: User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
     svc = ExecutionService(db)
     records = svc.list_records(tag_task_id=tag_task_id, status=status, limit=limit)
     return ApiResponse(data=[_serialize_record(r) for r in records])
 
 
 @router.get("/records/{record_id}")
-def get_record(record_id: int, db: Session = Depends(get_db)):
+def get_record(record_id: int, current_user: User = Depends(get_current_user),
+               db: Session = Depends(get_db)):
     svc = ExecutionService(db)
     record = svc.get_record(record_id)
     if not record:

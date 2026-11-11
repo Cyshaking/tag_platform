@@ -134,7 +134,8 @@ def _ensure_default_data() -> None:
 
         for r in roles_cfg.roles:
             stmt = select(Role).where(Role.code == r["code"])
-            if not session.execute(stmt).scalar_one_or_none():
+            existing_role = session.execute(stmt).scalar_one_or_none()
+            if not existing_role:
                 role = Role(
                     code=r["code"],
                     name=r["name"],
@@ -142,6 +143,17 @@ def _ensure_default_data() -> None:
                     permissions=json.dumps(r["permissions"], ensure_ascii=False),
                 )
                 session.add(role)
+                continue
+
+            # V1.7：config.yaml 新增的权限码合并进既有预置角色，
+            # 避免已有数据库因权限收紧/新增而在接口层校验时失去原有能力
+            try:
+                current = json.loads(existing_role.permissions or "[]")
+            except (json.JSONDecodeError, TypeError):
+                current = []
+            merged = list(dict.fromkeys(list(current) + list(r["permissions"])))
+            if merged != current:
+                existing_role.permissions = json.dumps(merged, ensure_ascii=False)
 
         # ========== 默认 admin ==========
         from app.config import admin as admin_cfg

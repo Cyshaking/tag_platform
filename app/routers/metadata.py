@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.schemas.common import ApiResponse
 from app.schemas.metadata import MetaTableCreate, MetaTableUpdate
 from app.services.metadata_service import MetadataService
@@ -32,14 +32,16 @@ def _serialize_table(t) -> dict:
 
 
 @router.get("/tables")
-def list_tables(status: Optional[str] = None, db: Session = Depends(get_db)):
+def list_tables(status: Optional[str] = None,
+                current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = MetadataService(db)
     tables = svc.list_tables(status=status)
     return ApiResponse(data=[_serialize_table(t) for t in tables])
 
 
 @router.get("/tables/{table_id}")
-def get_table(table_id: int, db: Session = Depends(get_db)):
+def get_table(table_id: int,
+              current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = MetadataService(db)
     table = svc.get_table(table_id)
     if not table:
@@ -47,7 +49,7 @@ def get_table(table_id: int, db: Session = Depends(get_db)):
     return ApiResponse(data=_serialize_table(table))
 
 
-@router.post("/tables")
+@router.post("/tables", dependencies=[Depends(require_permission("metadata:edit"))])
 def create_table(req: MetaTableCreate,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = MetadataService(db)
@@ -61,7 +63,7 @@ def create_table(req: MetaTableCreate,
     return ApiResponse(data={"id": table.id})
 
 
-@router.put("/tables/{table_id}")
+@router.put("/tables/{table_id}", dependencies=[Depends(require_permission("metadata:edit"))])
 def update_table(table_id: int, req: MetaTableUpdate,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = MetadataService(db)
@@ -75,7 +77,7 @@ def update_table(table_id: int, req: MetaTableUpdate,
     return ApiResponse()
 
 
-@router.delete("/tables/{table_id}")
+@router.delete("/tables/{table_id}", dependencies=[Depends(require_permission("metadata:edit"))])
 def delete_table(table_id: int,
                  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = MetadataService(db)
@@ -85,7 +87,8 @@ def delete_table(table_id: int,
 
 # ========== 模板下载 ==========
 @router.get("/template")
-def download_template(db: Session = Depends(get_db)):
+def download_template(current_user: User = Depends(get_current_user),
+                      db: Session = Depends(get_db)):
     svc = MetadataService(db)
     bytes_data = svc.generate_template()
     return Response(
@@ -96,7 +99,7 @@ def download_template(db: Session = Depends(get_db)):
 
 
 # ========== Excel 导入 ==========
-@router.post("/import")
+@router.post("/import", dependencies=[Depends(require_permission("metadata:edit"))])
 async def import_excel(file: UploadFile = File(...),
                        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # 校验文件扩展名

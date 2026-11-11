@@ -1,13 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 表关系配置</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 表关系配置</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
 <div class="header">
-<h1>标签管理配置平台演示系统</h1>
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div>
 </div>
 <div class="nav">
@@ -25,13 +43,13 @@
 
 <div class="container">
 <h2>表关系配置</h2>
-<p style="color:var(--ink-500);font-size:13px;margin-bottom:15px;">
+<p class="page-desc" style="margin-bottom:15px;">
  配置两张表之间的 JOIN 关联（左表字段 = 右表字段），标签任务的 SQL 生成会按此关系自动拼接 INNER / LEFT JOIN。
 </p>
 
-<div style="background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<div class="panel">
 <h3>新建关联关系</h3>
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
+<div class="form-grid cols-5" style="margin-bottom:12px;">
 <div>
 <label>左表 *</label>
 <select id="l_table" onchange="fillFields('l')"></select>
@@ -57,7 +75,7 @@
 <select id="r_field"></select>
 </div>
 </div>
-<div style="display:flex;gap:10px;">
+<div class="btn-row">
 <button onclick="saveRelation()" class="btn btn-primary">保存关系</button>
 <button onclick="loadData()" class="btn btn-secondary">刷新</button>
 </div>
@@ -66,7 +84,7 @@
 <div id="relationList"></div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent =

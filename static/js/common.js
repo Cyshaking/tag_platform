@@ -1,4 +1,7 @@
-/* common.js — 通用 API 封装 + V1.3 权限收口 + 主题切换 */
+/* common.js — TAG//OPS 控制台外壳
+   保留原有 API 契约：token 存取、api 封装、权限导航、待办角标。
+   仅调整视觉层与已失效的演示切换功能。 */
+
 const API_BASE = window.location.origin;
 
 let _token = localStorage.getItem('token') || '';
@@ -13,6 +16,11 @@ async function api(method, path, body) {
   const opts = { method, headers };
   if (body !== undefined) opts.body = JSON.stringify(body);
   const resp = await fetch(API_BASE + path, opts);
+  if (resp.status === 401) {
+    clearToken();
+    window.location.href = '/static/index.html';
+    throw new Error('登录已失效，请重新登录');
+  }
   const data = await resp.json();
   if (data.code && data.code !== 0 && data.code !== 200) {
     if (data.code === 40100) { clearToken(); window.location.href = '/static/index.html'; }
@@ -31,13 +39,19 @@ async function apiPost(path, body) { return api('POST', path, body); }
 async function apiPut(path, body) { return api('PUT', path, body); }
 async function apiDelete(path) { return api('DELETE', path); }
 
+/* 全局转义（页面内的同名函数会覆盖它，行为不受影响） */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function showMsg(msg, isError) {
   const div = document.createElement('div');
+  div.className = 'toast ' + (isError ? 'toast-error' : 'toast-ok');
   div.textContent = msg;
-  div.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:4px;
-    background:${isError ? 'var(--danger)' : 'var(--ok)'};color:#fff;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3)`;
   document.body.appendChild(div);
-  setTimeout(() => div.remove(), 2500);
+  setTimeout(() => div.remove(), 2600);
 }
 
 function checkLogin() {
@@ -47,102 +61,73 @@ function checkLogin() {
 
 function renderTable(headers, rows, containerId) {
   const el = document.getElementById(containerId);
+  if (!el) return;
   if (!rows || rows.length === 0) {
-    el.innerHTML = '<p style="color:var(--ink-500);padding:20px;text-align:center;">暂无数据</p>';
+    el.innerHTML = '<div class="empty">暂无数据</div>';
     return;
   }
-  let html = '<table>';
-  html += '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-  rows.forEach((r, i) => {
-    html += '<tr style="background:' + (i % 2 ? '#fafbfc' : '#fff') + ';">' + r.map(c => `<td>${c ?? ''}</td>`).join('') + '</tr>';
+  let html = '<div class="table-wrap"><table>';
+  html += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>' + r.map(c => `<td>${c ?? ''}</td>`).join('') + '</tr>';
   });
-  html += '</table>';
+  html += '</tbody></table></div>';
   el.innerHTML = html;
 }
 
-// ========== V1.3 新增：角色判断工具 ==========
+// ========== 角色判断工具 ==========
 function currentRoleCodes() {
   try {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
     return (u.roles || []).map(r => r.code);
   } catch (e) { return []; }
 }
-function isAdmin() { return currentRoleCodes().includes('admin'); }
 
-// ========== 身份切换（V1.3 只有 admin 可见）==========
-const DEMO_USERS = [
-  { username: 'admin', name: '系统管理员' },
-  { username: 'dap', name: '数据审批人' },
-  { username: 'tap', name: '技术审批人' },
-  { username: 'bap', name: '业务审批人' },
-  { username: 'normal', name: '普通用户' },
-];
-
-async function switchIdentity(username) {
-  const r = await apiPost('/api/auth/switch', { username });
-  setToken(r.data.access_token);
-  localStorage.setItem('user', JSON.stringify(r.data.user || {}));
-  showMsg('已切换身份：' + (r.data.user && r.data.user.display_name || username));
-  setTimeout(() => location.reload(), 500);
-}
-
-function initIdentitySwitcher() {
-  // V1.3: 只有 admin 才显示身份切换器
-  if (!isAdmin()) return;
-
-  const box = document.querySelector('.header .user');
-  if (!box || document.getElementById('identitySelect')) return;
-
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const current = user.username || 'admin';
-
-  const sel = document.createElement('select');
-  sel.id = 'identitySelect';
-  sel.title = '演示环境身份切换（仅 admin 可用）';
-  sel.style.cssText = 'margin-right:12px;padding:4px 8px;border-radius:4px;border:1px solid #cbd5e1;' +
-    'background:#fff;color:#1f2937;font-size:13px;outline:none;cursor:pointer;' +
-    'appearance:auto;';
-  sel.innerHTML = DEMO_USERS.map(u =>
-    `<option value="${u.username}" ${u.username === current ? 'selected' : ''} style="background:#fff;color:#1f2937;">${u.name}（${u.username}）</option>`
-  ).join('');
-  sel.onchange = () => {
-    switchIdentity(sel.value).catch(err => {
-      showMsg(err.message, true);
-      sel.value = current;
-    });
-  };
-
-  const anchor = document.getElementById('userName');
-  if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(sel, anchor);
-  else box.insertBefore(sel, box.firstChild);
-}
-
-// ========== V1.3 新增：导航按角色隐藏 ==========
+// ========== 导航按角色隐藏 ==========
 function hideUnauthorizedNav() {
-  const codes = currentRoleCodes();
-  const isAdminUser = codes.includes('admin');
+  const isAdminUser = currentRoleCodes().includes('admin');
   document.querySelectorAll('.nav a[data-perm]').forEach(a => {
-    const perm = a.getAttribute('data-perm');
-    if (perm === 'admin:only' && !isAdminUser) {
+    if (a.getAttribute('data-perm') === 'admin:only' && !isAdminUser) {
       a.style.display = 'none';
     }
   });
-  // 如果当前页面本身需要 admin 权限，也跳转到 dashboard
-  if (!isAdminUser && (location.pathname.endsWith('/users.html') || location.pathname.endsWith('users.html'))) {
-    // 非 admin 直接访问 users.html → 自动跳回 dashboard
-    // 但允许 users.html 的登录脚本先执行检查（showMsg 会显示）
-    // 这里不强制跳转，让后端 API 返回 403 时由前端提示
-  }
 }
 
-// ========== V1.3.1 审批待办角标（优先首页卡片） ==========
+// ========== 导航激活态（按当前路径自动判定） ==========
+function markActiveNav() {
+  const here = (location.pathname.split('/').pop() || 'dashboard.html').toLowerCase();
+  document.querySelectorAll('.nav a').forEach(a => {
+    const href = (a.getAttribute('href') || '').split('/').pop().toLowerCase();
+    if (href && href === here) a.classList.add('active');
+  });
+}
+
+// ========== 顶栏时钟 / 在线指示灯 ==========
+function initSysClock() {
+  const box = document.querySelector('.header .user');
+  if (!box || document.getElementById('sysClock')) return;
+  const wrap = document.createElement('span');
+  wrap.className = 'sys-status';
+  wrap.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="clock" id="sysClock">--:--:--</span>';
+  box.insertBefore(wrap, box.firstChild);
+
+  const tick = () => {
+    const el = document.getElementById('sysClock');
+    if (!el) return;
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    el.textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ========== 审批待办角标 ==========
 let _pendingInterval = null;
 function fetchPendingCount() {
   apiGet('/api/approvals/count?show_my_pending=true').then(r => {
     const n = (r.data && r.data.pending) || 0;
-    // V1.3.1: 优先更新首页卡片角标，兼容旧 nav 角标
-    const targets = ['pendCardBadge', 'pendBadge'];
-    targets.forEach(id => {
+    ['pendCardBadge', 'pendBadge'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       if (n > 0) {
@@ -161,66 +146,61 @@ function startPendingBadge() {
   _pendingInterval = setInterval(fetchPendingCount, 60000);
 }
 
-// ========== V1.3.1 主题切换（FAB 右下角悬浮设置按钮）==========
+// ========== 界面风格切换（ops / classic） ==========
+const THEME_KEY = 'theme';
+const THEMES = {
+  ops:     { label: '工业数据面板', desc: 'OPS · 深石墨' },
+  classic: { label: '经典海军蓝',   desc: 'CLASSIC · 浅灰' },
+  clean:   { label: 'Linear 极简',  desc: 'CLEAN · 靛蓝' },
+};
+
+function currentTheme() {
+  const t = localStorage.getItem(THEME_KEY) || 'ops';
+  if (THEMES[t]) return t;
+  return (t === 'formal' || t === 'default') ? 'classic' : 'ops';
+}
+
 function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
+  localStorage.setItem(THEME_KEY, THEMES[theme] ? theme : 'ops');
+  location.reload();
 }
 
 function initThemeSwitch() {
-  // 应用已保存主题（V1.4.3: 侧栏风格 formal 作为默认）
-  const savedTheme = localStorage.getItem('theme') || 'formal';
-  applyTheme(savedTheme);
-
-  if (document.getElementById('fabSettings')) return;
-
-  // FAB 悬浮按钮容器（固定右下角）
-  const fab = document.createElement('div');
-  fab.id = 'fabSettings';
-  fab.className = 'fab-menu';
-
-  const btn = document.createElement('button');
-  btn.className = 'fab-btn';
-  btn.innerHTML = '⚙️';
-  btn.title = '设置';
-
-  // 下拉菜单（从按钮上方弹出）
+  if (document.getElementById('themeFab')) return;
+  const cur = currentTheme();
   const menu = document.createElement('div');
-  menu.className = 'fab-panel';
+  menu.className = 'fab-menu';
+  menu.id = 'themeFab';
   menu.innerHTML = `
-    <div class="fab-panel-title">切换主题</div>
-    <div class="fab-item" data-theme="default">🎨 默认风格<br><span class="fab-item-desc">白导航 · 正式</span></div>
-    <div class="fab-item" data-theme="formal">💼 侧栏风格<br><span class="fab-item-desc">深海军蓝 · 参考图</span></div>
-  `;
-  menu.querySelectorAll('.fab-item').forEach(item => {
-    item.onclick = () => {
-      applyTheme(item.getAttribute('data-theme'));
-      showMsg('主题已切换');
-      menu.classList.remove('show');
-    };
-  });
+    <div class="fab-panel" id="themePanel">
+      <div class="fab-panel-title">界面风格 / THEME</div>
+      ${Object.keys(THEMES).map(k => `
+        <button type="button" class="fab-item${k === cur ? ' active' : ''}" data-theme-key="${k}">
+          <span>${THEMES[k].label}<span class="fab-item-desc">${THEMES[k].desc}</span></span>
+          <span class="tick">${k === cur ? '✓' : ''}</span>
+        </button>`).join('')}
+    </div>
+    <button type="button" class="fab-btn" id="themeFabBtn" title="切换界面风格" aria-label="切换界面风格">◐</button>`;
+  document.body.appendChild(menu);
 
-  btn.onclick = (e) => {
+  const panel = document.getElementById('themePanel');
+  document.getElementById('themeFabBtn').addEventListener('click', e => {
     e.stopPropagation();
-    menu.classList.toggle('show');
-  };
-
-  // 点击外部关闭
-  document.addEventListener('click', (e) => {
-    if (menu.classList.contains('show') && !fab.contains(e.target)) {
-      menu.classList.remove('show');
-    }
+    panel.classList.toggle('show');
   });
-
-  fab.appendChild(btn);
-  fab.appendChild(menu);
-  document.body.appendChild(fab);
+  menu.querySelectorAll('.fab-item').forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.themeKey));
+  });
+  document.addEventListener('click', e => {
+    if (!menu.contains(e.target)) panel.classList.remove('show');
+  });
 }
 
 // ========== DOMContentLoaded 统一初始化 ==========
 document.addEventListener('DOMContentLoaded', () => {
-  initIdentitySwitcher();     // V1.3: admin-only
-  hideUnauthorizedNav();      // V1.3: 非 admin 隐藏 admin:only 导航
-  initThemeSwitch();          // V1.3: ⚙️ 设置按钮 + 主题切换
-  startPendingBadge();        // V1.3: 待办角标 + 60s 刷新
+  hideUnauthorizedNav();
+  markActiveNav();
+  initSysClock();
+  initThemeSwitch();
+  startPendingBadge();
 });

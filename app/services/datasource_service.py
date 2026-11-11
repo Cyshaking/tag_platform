@@ -15,8 +15,9 @@ from sqlalchemy.orm import Session
 from app.db.models.datasource import Datasource
 from app.db.models.tag_task import TagTask
 from app.services.base import BaseService
-from app.utils.exceptions import BusinessException, ERR_DUP_DATASOURCE, ERR_NOT_FOUND, ERR_DS_TEST_FAIL, ERR_DS_DISABLED
+from app.utils.exceptions import BusinessException, ERR_DUP_DATASOURCE, ERR_NOT_FOUND, ERR_DS_TEST_FAIL, ERR_DS_DISABLED, ERR_BAD_REQUEST
 from app.utils.password_mask import mask_password, contains_password
+from app.utils.sql_guard import ensure_db_path_allowed
 
 
 class DatasourceService(BaseService):
@@ -39,6 +40,8 @@ class DatasourceService(BaseService):
         existing = self.db.execute(select(Datasource).where(Datasource.name == name)).scalar_one_or_none()
         if existing:
             raise BusinessException(ERR_DUP_DATASOURCE, f"数据源名称 '{name}' 已存在")
+
+        self._ensure_config_allowed(ds_type, config)
 
         ds = Datasource(
             name=name,
@@ -72,6 +75,7 @@ class DatasourceService(BaseService):
                 raise BusinessException(ERR_DUP_DATASOURCE, f"数据源名称 '{name}' 已存在")
             ds.name = name
         if config is not None:
+            self._ensure_config_allowed(ds.ds_type, config)
             ds.config_json = json.dumps(config, ensure_ascii=False)
         if is_enabled is not None:
             ds.is_enabled = is_enabled
@@ -112,6 +116,21 @@ class DatasourceService(BaseService):
         self._log_info(f"{'启用' if enabled else '禁用'} 数据源 {ds.name}", operator_id)
         return ds
 
+    # ========== 配置安全校验 ==========
+    @staticmethod
+    def _ensure_config_allowed(ds_type: str, config: Dict[str, Any]) -> None:
+        """
+        V1.7 P0：SQLite 数据源路径白名单。
+
+        只允许内存库或 data/ 演示数据目录内的文件，禁止指向平台主库。
+        """
+        if ds_type != "sqlite":
+            return
+        try:
+            ensure_db_path_allowed((config or {}).get("db_path") or "")
+        except ValueError as exc:
+            raise BusinessException(ERR_BAD_REQUEST, str(exc))
+
     # ========== 测试连接 ==========
     @staticmethod
     def test_connection(ds_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -136,9 +155,8 @@ class DatasourceService(BaseService):
 
     @staticmethod
     def _test_sqlite(config: Dict[str, Any]) -> None:
-        db_path = config.get("db_path")
-        if not db_path:
-            raise ValueError("缺少 db_path")
+        # V1.7 P0：路径白名单，禁止连接平台主库或 data/ 之外的任意文件
+        db_path = ensure_db_path_allowed(config.get("db_path") or "")
         # 尝试打开（文件可能不存在，但 sqlite3 会自动创建——这里只连接不建表以允许不存在也能测试）
         conn = sqlite3.connect(db_path)
         conn.execute("SELECT 1")

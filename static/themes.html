@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 业务主题</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 业务主题</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
-<div class="header"><h1>标签管理配置平台演示系统</h1>
+<div class="header">
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
 <div class="nav">
 <a href="/static/dashboard.html">首页</a>
@@ -23,22 +42,22 @@
 
 <div class="container">
 <h2>业务主题</h2>
-<p style="color:#6b7280;">业务主题是标签体系的顶层业务域，每个主题绑定一张已审批的主题表；标签任务的主表恒为主题表。</p>
-<div style="margin:15px 0;display:flex;gap:10px;">
+<p class="page-desc">业务主题是标签体系的顶层业务域，每个主题绑定一张已审批的主题表；标签任务的主表恒为主题表。</p>
+<div class="bar-row">
 <button onclick="showForm()" class="btn">新建主题</button>
 <button onclick="loadData()" class="btn btn-secondary">刷新</button>
 </div>
 
-<div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<div id="formBox" class="panel" style="display:none;">
 <h3 id="formTitle">新建业务主题</h3>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+<div class="form-grid cols-2">
 <div><label>主题编码 *</label><input id="f_code" placeholder="如 POLICY_THEME"></div>
 <div><label>主题名称 *</label><input id="f_name" placeholder="如 保单主题"></div>
 <div><label>主题表（主表）*</label><select id="f_table"></select></div>
 <div><label>是否启用</label><select id="f_enabled"><option value="true">启用</option><option value="false">停用</option></select></div>
 <div style="grid-column:1/3;"><label>描述</label><input id="f_desc" placeholder="主题业务含义说明"></div>
 </div>
-<div style="margin-top:15px;">
+<div class="btn-row" style="margin-top:15px;">
 <button onclick="saveTheme()" class="btn btn-primary">保存</button>
 <button onclick="hideForm()" class="btn btn-secondary">取消</button>
 </div>
@@ -47,7 +66,7 @@
 <div id="themeList"></div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -102,7 +121,7 @@
  t.serial_no, esc(t.theme_code), esc(t.theme_name),
  esc(t.main_table_name || ('#'+t.main_table_id)),
  esc(t.description || ''),
- t.is_enabled ? '<span style="color:var(--ok);">启用</span>' : '<span style="color:var(--ink-400);">停用</span>',
+ t.is_enabled ? '<span class="status status-approved">启用</span>' : '<span class="status status-disabled">停用</span>',
  `<button class="btn btn-secondary" onclick="editTheme(${t.id})">编辑</button>
 <button class="btn btn-danger" onclick="delTheme(${t.id})">删除</button>`
  ]),

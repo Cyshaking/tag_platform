@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 执行记录</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 执行记录</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
-<div class="header"><h1>标签管理配置平台演示系统</h1>
+<div class="header">
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
 <div class="nav">
 <a href="/static/dashboard.html">首页</a>
@@ -26,9 +45,9 @@
 <h2>执行记录</h2>
 
 <!-- 筛选区 -->
-<div style="margin:15px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-  <input id="filterTaskId" type="number" placeholder="任务 ID" style="width:100px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;">
-  <select id="filterStatus" style="padding:6px 10px;border:1px solid var(--line);border-radius:4px;">
+<div class="filter-bar">
+  <input id="filterTaskId" type="number" placeholder="任务 ID" style="width:110px">
+  <select id="filterStatus">
     <option value="">全部状态</option>
     <option value="pending">pending</option>
     <option value="running">running</option>
@@ -37,23 +56,19 @@
   </select>
   <button onclick="loadList()" class="btn btn-secondary">查询</button>
   <button onclick="resetFilter()" class="btn btn-secondary">重置</button>
-  <span id="totalInfo" style="margin-left:auto;color:var(--ink-500);font-size:13px;"></span>
+  <span id="totalInfo" class="total-info"></span>
 </div>
 
 <div id="recordList"></div>
 </div>
 
-<script src="/static/js/common.js?v=143"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
 checkLogin();
 document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
 function logout() { clearToken(); localStorage.clear(); location.href='/static/index.html'; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-const STATUS_COLOR = {
-  pending: '#b06000', running: 'var(--navy-600)',
-  success: 'var(--ok)', failed: 'var(--danger)',
-};
 const STATUS_LABEL = {
   pending: '等待中', running: '执行中',
   success: '成功', failed: '失败',
@@ -81,7 +96,7 @@ function render(data) {
   document.getElementById('totalInfo').textContent = `共 ${data.length} 条`;
   if (!data.length) {
     document.getElementById('recordList').innerHTML =
-      '<p style="color:var(--ink-500);padding:40px;text-align:center;">暂无执行记录</p>';
+      '<div class="empty">暂无执行记录</div>';
     return;
   }
   let html = '';
@@ -91,37 +106,34 @@ function render(data) {
       : (r.execute_log && r.execute_log.includes('耗时')
           ? (r.execute_log.match(/耗时\s*(\d+)ms/)||[])[1] + 'ms' || '-'
           : '-');
-    const statusColor = STATUS_COLOR[r.status] || '#666';
     const statusLabel = STATUS_LABEL[r.status] || r.status;
 
-    html += `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<div style="display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:#374151;margin-bottom:6px;">
-  <span><b>记录 #${esc(r.id)}</b></span>
+    html += `<div class="record-card">
+<div class="record-head">
+  <b>记录 #${esc(r.id)}</b>
   <span>任务 ID: ${esc(r.tag_task_id)}</span>
-  <span>数据源 ID: ${esc(r.datasource_id)} (${esc(r.ds_type)})</span>
-  <span style="color:${statusColor};font-weight:600;">状态: ${statusLabel}</span>
+  <span>数据源: ${esc(r.datasource_id)} (${esc(r.ds_type)})</span>
+  <span class="status status-${esc(r.status)}">${statusLabel}</span>
   <span>耗时: ${esc(duration)}</span>
-  <span style="color:var(--ink-500);">创建: ${esc(r.created_at||'-')}</span>
+  <span class="muted">创建: ${esc(r.created_at||'-')}</span>
 </div>
 
 <details>
-  <summary style="cursor:pointer;color:var(--navy-600);font-size:12px;margin-top:4px;">查看执行 SQL</summary>
-  <pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:200px;overflow:auto;">${esc(r.submitted_sql)}</pre>
+  <summary>查看执行 SQL</summary>
+  <pre>${esc(r.submitted_sql)}</pre>
 </details>
 
 ${r.execute_log ? `<details open>
-  <summary style="cursor:pointer;color:var(--navy-600);font-size:12px;margin-top:6px;">执行日志</summary>
-  <pre style="background:#f8fafc;border:1px solid var(--line);padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:150px;overflow:auto;color:#374151;">${esc(r.execute_log)}</pre>
+  <summary>执行日志</summary>
+  <pre>${esc(r.execute_log)}</pre>
 </details>` : ''}
 
 ${r.error_message ? `<details open>
-  <summary style="cursor:pointer;color:var(--danger);font-size:12px;margin-top:6px;">⚠️ 错误详情</summary>
-  <pre style="background:#fef2f2;border:1px solid #fca5a5;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:250px;overflow:auto;color:#991b1b;">${esc(r.error_message)}</pre>
+  <summary class="text-danger">错误详情</summary>
+  <pre class="error-pre">${esc(r.error_message)}</pre>
 </details>` : ''}
 
-<div style="display:flex;gap:8px;margin-top:8px;">
-  ${r.finished_at ? `<span style="color:var(--ink-500);font-size:11px;">完成: ${esc(r.finished_at)}</span>` : ''}
-</div>
+${r.finished_at ? `<div class="hint" style="margin-top:8px;">完成: ${esc(r.finished_at)}</div>` : ''}
 </div>`;
   });
   document.getElementById('recordList').innerHTML = html;

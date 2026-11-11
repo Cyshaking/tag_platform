@@ -23,6 +23,13 @@ class SqliteEngine(BaseEngine):
     # sqlite3 模块支持的 DDL/DML/DQL 语句前缀
     _NON_QUERY_PREFIXES = ("INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER", "TRUNCATE", "REPLACE")
 
+    @staticmethod
+    def _connect(db_path: str, readonly: bool) -> sqlite3.Connection:
+        """V1.7 P0：只读执行使用 URI mode=ro 连接；内存库不支持只读 URI"""
+        if readonly and not (db_path == ":memory:" or db_path.startswith("file::memory:")):
+            return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        return sqlite3.connect(db_path)
+
     def validate_sql(self, sql: str, datasource_config: Dict[str, Any]) -> tuple[bool, str]:
         """
         V1.1：使用 EXPLAIN 编译校验（不读取数据、无副作用）。
@@ -43,13 +50,21 @@ class SqliteEngine(BaseEngine):
             if conn is not None:
                 conn.close()
 
-    def submit_sql(self, sql: str, datasource_config: Dict[str, Any]) -> str:
+    def submit_sql(self, sql: str, datasource_config: Dict[str, Any],
+                   readonly: bool = False) -> str:
+        """
+        执行 SQL。
+
+        Args:
+            readonly: V1.7 P0 — 平台执行链路传 True，使用 SQLite 只读连接（mode=ro），
+                      即使上游校验被绕过，写操作也会在数据库层被拒绝。
+        """
         db_path = datasource_config.get("db_path")
         if not db_path:
             raise ValueError("sqlite 数据源缺少 db_path 配置")
 
         start = time.time()
-        conn = sqlite3.connect(db_path)
+        conn = self._connect(db_path, readonly)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -57,7 +72,9 @@ class SqliteEngine(BaseEngine):
             is_select = sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")
 
             cursor.execute(sql)
-            conn.commit()
+            # 只读查询不开启/提交写事务
+            if not readonly:
+                conn.commit()
 
             # V1.4.3：rowcount 可靠获取
             # SQLite cursor.rowcount 对 SELECT 返回 -1（不可靠），需要 len(fetchall())
@@ -67,7 +84,7 @@ class SqliteEngine(BaseEngine):
                 row_count = len(rows)
             else:
                 row_count = cursor.rowcount
-        except Exception as e:
+        except Exception:
             conn.close()
             raise
         # 同步保存结果到一个内部字典（get_task_status 读取）

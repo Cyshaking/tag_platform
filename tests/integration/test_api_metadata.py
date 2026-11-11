@@ -45,9 +45,9 @@ class TestMetadataAPI:
         }, headers=auth_headers)
         assert r.json()["code"] != 0
 
-    def test_unauthorized_blocked(self, client):
+    def test_unauthorized_blocked(self, anon_client):
         """无 token 调写接口 → 401"""
-        r = client.post("/api/metadata/tables", json={
+        r = anon_client.post("/api/metadata/tables", json={
             "table_name": "no_auth_t",
             "fields": [{"field_name": "id", "field_type": "INT", "is_primary_key": True}],
         })

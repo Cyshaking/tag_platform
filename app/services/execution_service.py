@@ -21,6 +21,7 @@ from app.engines.base_engine import BaseEngine, TaskStatusInfo
 from app.engines.sqlite_engine import SqliteEngine
 from app.engines.spark_thrift_engine import SparkThriftEngine
 from app.utils.exceptions import BusinessException, ERR_NOT_FOUND, ERR_DS_DISABLED, ERR_TAG_SQL_EMPTY, ERR_APPROVE_STATE
+from app.utils.sql_guard import check_readonly_sql, ensure_db_path_allowed
 
 
 # ds_type → 引擎类
@@ -79,6 +80,20 @@ class ExecutionService(BaseService):
         if not ds.is_enabled:
             raise BusinessException(ERR_DS_DISABLED, f"数据源 '{ds.name}' 已禁用")
 
+        ds_config = self._ds_raw_config(ds)
+
+        # V1.7 P0：执行阶段二次校验，不依赖保存/校验接口的历史结论
+        # 1) SQL 必须为只读单语句；2) SQLite 库路径必须落在 data/ 演示目录内
+        if ds.ds_type == "sqlite":
+            try:
+                ensure_db_path_allowed(ds_config.get("db_path") or "")
+            except ValueError as exc:
+                raise BusinessException(ERR_BAD_REQUEST, f"执行被拒绝：{exc}")
+
+        ok, message, _ = check_readonly_sql(task.generated_sql)
+        if not ok:
+            raise BusinessException(ERR_BAD_REQUEST, f"执行被拒绝：{message}")
+
         # 3. 创建执行记录
         record = TaskExecuteRecord(
             tag_task_id=task.id,
@@ -101,7 +116,6 @@ class ExecutionService(BaseService):
             raise BusinessException(ERR_BAD_REQUEST, f"不支持的数据源类型: {ds.ds_type}")
 
         engine = engine_cls()
-        ds_config = self._ds_raw_config(ds)
 
         record.status = "running"
         record.started_at = datetime.utcnow()
@@ -185,7 +199,8 @@ class ExecutionService(BaseService):
                   ds_config: Dict[str, Any]) -> None:
         """同步执行（sqlite 场景）"""
         try:
-            task_id = engine.submit_sql(record.submitted_sql, ds_config)
+            # V1.7 P0：平台执行链路一律只读连接
+            task_id = engine.submit_sql(record.submitted_sql, ds_config, readonly=True)
             record.external_task_id = task_id
 
             status: TaskStatusInfo = engine.get_task_status(task_id, ds_config)

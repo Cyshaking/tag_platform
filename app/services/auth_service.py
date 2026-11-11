@@ -49,6 +49,11 @@ class AuthService(BaseService):
         """
         from app.config import demo_switch as switch_cfg
 
+        # V1.7 P0：防御纵深——接口层已用 require_permission("*") 拦截，
+        # service 层再校验一次调用者是否为管理员
+        if not self.has_permission(operator_id, "*"):
+            raise BusinessException(ERR_PERMISSION, "仅系统管理员可执行演示身份切换")
+
         if not switch_cfg.enabled:
             raise BusinessException(ERR_PERMISSION, "演示身份切换已关闭（demo_switch.enabled=false）")
         if username not in switch_cfg.users:

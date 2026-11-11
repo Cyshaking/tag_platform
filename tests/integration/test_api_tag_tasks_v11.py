@@ -38,8 +38,8 @@ def _quick_approve(client, auth_headers, tag_task_id: int) -> None:
         token = r.json()["data"]["access_token"]
         h = {"Authorization": f"Bearer {token}"}
         client.post(f"/api/approvals/{ticket_id}/approve", headers=h, json={"comment": "ok"})
-    # 切回 admin 拿到原始 token
-    r = client.post("/api/auth/switch", headers=h, json={"username": "admin"})
+    # 切回 admin 拿到原始 token（V1.7：身份切换仅允许 admin 发起）
+    r = client.post("/api/auth/switch", headers=auth_headers, json={"username": "admin"})
     token = r.json()["data"]["access_token"]
     auth_headers.clear()
     auth_headers["Authorization"] = f"Bearer {token}"

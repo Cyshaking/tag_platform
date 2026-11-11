@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>标签管理配置平台演示系统 - 标签任务配置</title>
-<link rel="stylesheet" href="/static/css/main.css">
+<title>TAG//OPS · 标签任务配置</title>
+<script>
+(function () {
+  var t = localStorage.getItem('theme') || 'ops';
+  if (t === 'formal' || t === 'default') t = 'classic';
+  if (t !== 'classic' && t !== 'clean') t = 'ops';
+  document.documentElement.setAttribute('data-theme', t);
+  var css;
+  if (t === 'classic') css = ['/static/css/classic.css?v=200', '/static/css/classic-extra.css?v=200'];
+  else if (t === 'clean') css = ['/static/css/clean.css?v=200', '/static/css/clean-extra.css?v=200'];
+  else css = ['/static/css/main.css?v=200'];
+  for (var i = 0; i < css.length; i++) {
+    document.write('<link rel="stylesheet" href="' + css[i] + '">');
+  }
+})();
+</script>
 </head>
 <body>
-<div class="header"><h1>标签管理配置平台演示系统</h1>
+<div class="header">
+<div class="brand">
+<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+<span class="brand-name">TAG<em>//</em>OPS</span>
+<span class="brand-sub">标签管理配置平台</span>
+</div>
 <div class="user"><span id="userName"></span><a href="#" onclick="logout()">退出</a></div></div>
 <div class="nav">
 <a href="/static/dashboard.html">首页</a>
@@ -23,15 +42,15 @@
 
 <div class="container">
 <h2>标签任务配置</h2>
-<div style="margin:15px 0;display:flex;gap:10px;">
+<div class="bar-row">
 <button onclick="showForm()" class="btn">新建任务</button>
 <button onclick="loadData()" class="btn btn-secondary">刷新</button>
 </div>
 
-<div id="formBox" style="display:none;background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;">
+<div id="formBox" class="panel" style="display:none;">
 <h3 id="formTitle">新建标签任务</h3>
 
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+<div class="form-grid cols-2">
 <div><label>任务名称 *</label><input id="f_name"></div>
 <div><label>任务模式 *</label>
 <select id="f_mode" onchange="switchMode()">
@@ -50,16 +69,16 @@
 
 <h4>① 配置表（任意元数据表均可选中；第一张 = 内层子查询 FROM）</h4>
 <div id="cfgTableList" style="margin-top:6px;"></div>
-<div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+<div class="bar-row" style="margin-top:6px">
 <select id="addCfgTable"></select>
 <button class="btn btn-secondary" onclick="addCfgTable()">加入配置表</button>
-<span style="color:#8a94a6;font-size:12px;">提示：至少选一张；若条件里用了某张表的字段，也必须把这张表加进来</span>
+<span class="hint">提示：至少选一张；若条件里用了某张表的字段，也必须把这张表加进来</span>
 </div>
 
 <h4 style="margin-top:18px;">② 判断逻辑（条件链：AND / OR 按行拼）</h4>
 <div id="condRows" style="margin-top:6px;"></div>
 <button class="btn btn-secondary" onclick="addCondRow()" style="margin-top:6px;">新增条件行</button>
-<div style="margin-top:8px;color:#8a94a6;font-size:12px;">
+<div class="hint" style="margin-top:8px;">
  行 1 无前缀；后续行必须选 AND 或 OR。无条件时后端会回退成<code>CASE WHEN 1=1 THEN ...</code>
 </div>
 </div>
@@ -67,7 +86,7 @@
 <!-- SQL 直配模式 -->
 <div id="sqlPanel" style="margin-top:18px;display:none;">
 <h4>SQL 直配</h4>
-<textarea id="f_sql" rows="9" style="width:100%;font-family:Consolas,monospace;padding:10px;border:1px solid #d5d9e0;border-radius:6px;"
+<textarea id="f_sql" rows="9"
  placeholder="仅支持单条只读 SELECT / WITH 查询，例如：&#10;SELECT policy_id, policy_no FROM policy WHERE policy_status = 'EFFECTIVE';"></textarea>
 <div style="margin-top:8px;">
 <button class="btn btn-secondary" onclick="validateSQL()">校验 SQL</button>
@@ -75,7 +94,7 @@
 </div>
 </div>
 
-<div style="margin-top:15px;">
+<div class="btn-row" style="margin-top:15px;">
 <button onclick="previewSQL()" class="btn btn-secondary">预览 SQL</button>
 <button onclick="saveTask()" class="btn btn-primary">保存任务</button>
 <button onclick="hideForm()" class="btn btn-secondary">取消</button>
@@ -87,17 +106,15 @@
 </div>
 
 <!-- V1.2.1 执行结果 Modal -->
-<div id="execModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;" onclick="if(event.target===this)closeExecModal()">
-<div style="background:#fff;border-radius:8px;padding:20px;width:min(720px,92vw);max-height:85vh;overflow-y:auto;margin:8vh auto;">
-<div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-<h3 style="margin:0;"> 执行结果</h3>
-<button onclick="closeExecModal()" style="border:none;background:none;font-size:22px;cursor:pointer;"></button>
-</div>
+<div id="execModal" class="modal-overlay" onclick="if(event.target===this)closeExecModal()">
+<div class="modal-box" style="width:min(720px,92vw);">
+<button class="modal-close" onclick="closeExecModal()">×</button>
+<h3>执行结果</h3>
 <div id="execModalBody"></div>
 </div>
 </div>
 
-<script src="/static/js/common.js?v=142"></script>
+<script src="/static/js/common.js?v=200"></script>
 <script>
  checkLogin();
  document.getElementById('userName').textContent = JSON.parse(localStorage.getItem('user')||'{}').display_name || '';
@@ -206,15 +223,15 @@
  }
  function renderCfgTables(){
  const box = document.getElementById('cfgTableList');
- if(!cfgTables.length){ box.innerHTML='<span style="color:#8a94a6;">尚未加入配置表</span>'; return; }
+ if(!cfgTables.length){ box.innerHTML='<span class="hint">尚未加入配置表</span>'; return; }
  box.innerHTML = cfgTables.map((t,i)=>
- `<span style="background:#eaf1fa;border:1px solid #d7def9;border-radius:4px;padding:4px 8px;margin-right:4px;display:inline-flex;align-items:center;gap:4px;">
- ${i===0?'<b style="color:var(--navy-600);">①</b>':'<span style="color:#8a94a6;">${i+1}</span>'}
+ `<span class="cfg-chip">
+ ${i===0?'<b class="cfg-idx">01</b>':`<span class="cfg-idx">${String(i+1).padStart(2,'0')}</span>`}
  ${esc(t.table_name)}
- ${i===0?'<span style="color:var(--navy-600);font-size:11px;">内层 FROM</span>':''}
+ ${i===0?'<span class="cfg-from">内层 FROM</span>':''}
  ${i>0?`<a href="#" onclick="moveCfgTable(${i},-1);return false;">↑</a>`:''}
  ${i<cfgTables.length-1?`<a href="#" onclick="moveCfgTable(${i},1);return false;">↓</a>`:''}
-<a href="#" onclick="removeCfgTable(${i});return false;"></a></span>`).join('');
+<a class="cfg-x" href="#" onclick="removeCfgTable(${i});return false;">×</a></span>`).join('');
  }
 
  // ---------- 条件行 ----------
@@ -225,7 +242,7 @@
  function removeCondRow(i){ condRows.splice(i,1); renderCondRows(); }
  function renderCondRows(){
  const box = document.getElementById('condRows');
- if(!condRows.length){ box.innerHTML='<span style="color:#8a94a6;">尚无条件（无条件时 CASE WHEN 1=1）</span>'; return; }
+ if(!condRows.length){ box.innerHTML='<span class="hint">尚无条件（无条件时 CASE WHEN 1=1）</span>'; return; }
  const html = condRows.map((c,i)=>{
  const isFirst = i===0;
  // V1.2.1: 把 cfgOpts 生成移进 map 内部，按 c.table_id 加 selected 回显
@@ -240,9 +257,9 @@
  }
  const noVal = NO_VALUE_OPS.has(c.operator);
  return `
-<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;padding:6px 10px;background:#f8fafc;border:1px solid #e0e3e8;border-radius:4px;flex-wrap:wrap;">
+<div class="cond-row">
  ${isFirst
- ? '<span style="color:#8a94a6;">行 1</span>'
+ ? '<span class="cond-first">行 01</span>'
  : `<select onchange="condRows[${i}].logic=this.value">
 <option value="AND" ${c.logic==='AND'?'selected':''}>AND</option>
 <option value="OR" ${c.logic==='OR' ?'selected':''}>OR</option>
@@ -258,10 +275,10 @@
  ${ALL_OPS.map(o=>`<option value="${o.v}" ${c.operator===o.v?'selected':''}>${o.l}</option>`).join('')}
 </select>
  ${noVal
- ? '<span style="color:#8a94a6;font-size:12px;">(无需值)</span>'
- : `<input value="${esc(c.value)}" placeholder="${c.operator==='IN'?'英文逗号分隔':'值'}" style="min-width:160px;"
+ ? '<span class="hint">(无需值)</span>'
+ : `<input value="${esc(c.value)}" placeholder="${c.operator==='IN'?'英文逗号分隔':'值'}"
  onchange="condRows[${i}].value=this.value">`}
-<a href="#" onclick="removeCondRow(${i});return false;" style="color:var(--danger);"></a>
+<a class="cond-x" href="#" onclick="removeCondRow(${i});return false;">×</a>
 </div>`;
  }).join('');
  box.innerHTML = html;
@@ -367,10 +384,10 @@
 
  // V1.2 审批状态 → 标签 + 颜色
  const STATUS_LABEL = {
- pending: '<span style="color:#8a94a6;">未提交</span>',
- in_progress:'<span style="color:#b06000;">审批中</span>',
- approved: '<span style="color:var(--ok);"> 已通过</span>',
- rejected: '<span style="color:var(--danger);"> 已驳回</span>',
+ pending: '<span class="muted">未提交</span>',
+ in_progress:'<span class="text-amber">审批中</span>',
+ approved: '<span class="text-ok">已通过</span>',
+ rejected: '<span class="text-danger">已驳回</span>',
  };
 
  async function loadData(){
@@ -386,13 +403,13 @@
  const canExec = st === 'approved';
  return [
  t.serial_no, esc(t.task_name),
- t.task_mode==='SQL' ? '<span style="color:#7b1fa2;">SQL 直配</span>' : '<span style="color:#1565c0;">字段配置</span>',
+ t.task_mode==='SQL' ? '<span class="chip chip-sql">SQL 直配</span>' : '<span class="chip chip-field">字段配置</span>',
  esc(t.business_theme || themeName(t.theme_id)),
  esc(t.tag_value_code), t.datasource_id,
  STATUS_LABEL[st] || st,
  `<button class="btn btn-secondary" onclick="preview(${t.id})">SQL</button>
  ${canSubmit ? `<button class="btn" onclick="submitApproval(${t.id})">提交审批</button>` : ''}
-<button class="btn" ${canExec?'':'disabled style="opacity:.5;cursor:not-allowed;"'} onclick="execute(${t.id})">${canExec?'▶ 执行':'执行(需审批)'}
+<button class="btn" ${canExec?'':'disabled'} onclick="execute(${t.id})">${canExec?'▶ 执行':'执行(需审批)'}
 </button>
 <button class="btn btn-danger" onclick="del(${t.id})">删除</button>`
  ];
@@ -427,7 +444,7 @@
  }
  function showExecResult(rec){
  const ok = rec.status === 'success';
- const icon = ok ? '' : '';
+ const icon = ok ? '✓' : '×';
  const color = ok ? 'var(--ok)' : 'var(--danger)';
  const start = rec.started_at ? new Date(rec.started_at).toLocaleString() : '-';
  const end = rec.finished_at ? new Date(rec.finished_at).toLocaleString() : '-';
@@ -435,25 +452,22 @@
  ? ((new Date(rec.finished_at) - new Date(rec.started_at))/1000).toFixed(2) + 's'
  : '-';
  const body = `
-<div style="display:flex;align-items:center;gap:10px;font-size:16px;margin-bottom:14px;">
-<span style="font-size:28px;">${icon}</span>
+<div class="exec-head">
+<span class="exec-icon" style="color:${color};">${icon}</span>
 <span style="font-weight:600;color:${color};">${ok?'执行成功':'执行失败'}</span>
-<span style="color:#6b7280;font-size:13px;">(${rec.ds_type} 数据源)</span>
+<span class="hint">(${rec.ds_type} 数据源)</span>
 </div>
-<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
-<tr><td style="padding:6px 8px;background:#f8fafc;width:120px;">数据源</td><td style="padding:6px 8px;">${rec.ds_type} ${rec.external_task_id?`· 任务ID: ${rec.external_task_id}`:''}</td></tr>
-<tr><td style="padding:6px 8px;background:#f8fafc;">开始时间</td><td style="padding:6px 8px;">${start}</td></tr>
-<tr><td style="padding:6px 8px;background:#f8fafc;">结束时间</td><td style="padding:6px 8px;">${end}</td></tr>
-<tr><td style="padding:6px 8px;background:#f8fafc;">耗时</td><td style="padding:6px 8px;">${dur}</td></tr>
- ${rec.error_message ? `<tr><td style="padding:6px 8px;background:#fef2f2;color:var(--danger);">错误</td><td style="padding:6px 8px;color:var(--danger);">${esc(rec.error_message)}</td></tr>` : ''}
-</table>
- ${rec.execute_log ? `<details style="margin-bottom:10px;"><summary style="cursor:pointer;color:var(--navy-600);font-size:13px;"> 执行日志</summary>
-<pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:200px;overflow:auto;">${esc(rec.execute_log)}</pre></details>` : ''}
-<details><summary style="cursor:pointer;color:var(--navy-600);font-size:13px;"> 提交的 SQL</summary>
-<pre style="background:var(--navy-950);color:#f1f5f9;padding:10px;border-radius:4px;font-size:11px;margin-top:6px;white-space:pre-wrap;max-height:240px;overflow:auto;">${esc(rec.submitted_sql)}</pre>
-</details>`;
+<div class="table-wrap" style="margin-bottom:14px;"><table class="kv">
+<tr><th>数据源</th><td>${rec.ds_type} ${rec.external_task_id?`· 任务ID: ${rec.external_task_id}`:''}</td></tr>
+<tr><th>开始时间</th><td>${start}</td></tr>
+<tr><th>结束时间</th><td>${end}</td></tr>
+<tr><th>耗时</th><td>${dur}</td></tr>
+ ${rec.error_message ? `<tr><th class="text-danger">错误</th><td class="text-danger">${esc(rec.error_message)}</td></tr>` : ''}
+</table></div>
+ ${rec.execute_log ? `<details style="margin-bottom:10px;"><summary>执行日志</summary><pre>${esc(rec.execute_log)}</pre></details>` : ''}
+<details><summary>提交的 SQL</summary><pre>${esc(rec.submitted_sql)}</pre></details>`;
  document.getElementById('execModalBody').innerHTML = body;
- document.getElementById('execModal').style.display = 'block';
+ document.getElementById('execModal').style.display = 'flex';
  }
  function closeExecModal(){ document.getElementById('execModal').style.display = 'none'; }
  async function del(id){

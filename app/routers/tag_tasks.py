@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.schemas.common import ApiResponse
 from app.schemas.tag_task import (
     PreviewSQLRequest, TagTaskCreate, TagTaskUpdate, ValidateSQLRequest,
@@ -39,14 +39,15 @@ def _serialize(t) -> dict:
 
 
 @router.get("")
-def list_tasks(db: Session = Depends(get_db)):
+def list_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
     return ApiResponse(data=[_serialize(t) for t in svc.list_tasks()])
 
 
 # ========== 预览 SQL (必须在 /{task_id} 之前注册!) ==========
 @router.post("/preview-sql")
-def preview_sql_post(req: PreviewSQLRequest, db: Session = Depends(get_db)):
+def preview_sql_post(req: PreviewSQLRequest,
+                     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
     sql = svc.preview_sql(
         main_table_id=req.main_table_id, main_field_id=req.main_field_id,
@@ -64,6 +65,7 @@ def preview_sql(main_table_id: Optional[int] = None,
                 theme_id: Optional[int] = None,
                 raw_sql: Optional[str] = None,
                 field_config_json: Optional[str] = None,
+                current_user: User = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     field_config = None
     if field_config_json:
@@ -82,14 +84,16 @@ def preview_sql(main_table_id: Optional[int] = None,
 
 # ========== SQL 校验 ==========
 @router.post("/validate-sql")
-def validate_sql(req: ValidateSQLRequest, db: Session = Depends(get_db)):
+def validate_sql(req: ValidateSQLRequest,
+                 current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
     result = svc.validate_sql(req.sql, req.datasource_id)
     return ApiResponse(data=result)
 
 
 @router.get("/{task_id}")
-def get_task(task_id: int, db: Session = Depends(get_db)):
+def get_task(task_id: int, current_user: User = Depends(get_current_user),
+             db: Session = Depends(get_db)):
     svc = TagTaskService(db)
     task = svc.get_task(task_id)
     if not task:
@@ -97,7 +101,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return ApiResponse(data=_serialize(task))
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_permission("tag_task:edit"))])
 def create_task(req: TagTaskCreate,
                 current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
@@ -111,7 +115,7 @@ def create_task(req: TagTaskCreate,
     return ApiResponse(data={"id": task.id, "generated_sql": task.generated_sql})
 
 
-@router.put("/{task_id}")
+@router.put("/{task_id}", dependencies=[Depends(require_permission("tag_task:edit"))])
 def update_task(task_id: int, req: TagTaskUpdate,
                 current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
@@ -124,7 +128,7 @@ def update_task(task_id: int, req: TagTaskUpdate,
     return ApiResponse()
 
 
-@router.delete("/{task_id}")
+@router.delete("/{task_id}", dependencies=[Depends(require_permission("tag_task:edit"))])
 def delete_task(task_id: int,
                 current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = TagTaskService(db)
@@ -133,7 +137,7 @@ def delete_task(task_id: int,
 
 
 # V1.2 新增：提交标签任务审批
-@router.post("/{task_id}/submit-approval")
+@router.post("/{task_id}/submit-approval", dependencies=[Depends(require_permission("tag_task:edit"))])
 def submit_task_approval(task_id: int, title: Optional[str] = None,
                          current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     approval_svc = ApprovalService(db)

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.schemas.common import ApiResponse
 from app.schemas.datasource import DatasourceCreate, DatasourceUpdate, DatasourceTestResult, DatasourceTestConnection
 from app.services.datasource_service import DatasourceService
@@ -21,20 +21,22 @@ def _serialize(ds, svc: DatasourceService) -> dict:
 
 
 @router.get("")
-def list_datasources(include_disabled: bool = True, db: Session = Depends(get_db)):
+def list_datasources(include_disabled: bool = True,
+                     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = DatasourceService(db)
     return ApiResponse(data=[_serialize(ds, svc) for ds in svc.list_datasources(include_disabled=include_disabled)])
 
 
 @router.get("/enabled")
-def list_enabled_datasources(db: Session = Depends(get_db)):
+def list_enabled_datasources(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """前端下拉只展示已启用的数据源"""
     svc = DatasourceService(db)
     return ApiResponse(data=[_serialize(ds, svc) for ds in svc.list_datasources(include_disabled=False)])
 
 
 @router.get("/{ds_id}")
-def get_datasource(ds_id: int, db: Session = Depends(get_db)):
+def get_datasource(ds_id: int, current_user: User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
     svc = DatasourceService(db)
     ds = svc.get_datasource(ds_id)
     if not ds:
@@ -42,7 +44,7 @@ def get_datasource(ds_id: int, db: Session = Depends(get_db)):
     return ApiResponse(data=_serialize(ds, svc))
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_permission("datasource:edit"))])
 def create_datasource(req: DatasourceCreate,
                        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = DatasourceService(db)
@@ -54,7 +56,7 @@ def create_datasource(req: DatasourceCreate,
     return ApiResponse(data={"id": ds.id})
 
 
-@router.put("/{ds_id}")
+@router.put("/{ds_id}", dependencies=[Depends(require_permission("datasource:edit"))])
 def update_datasource(ds_id: int, req: DatasourceUpdate,
                        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = DatasourceService(db)
@@ -66,7 +68,7 @@ def update_datasource(ds_id: int, req: DatasourceUpdate,
     return ApiResponse()
 
 
-@router.delete("/{ds_id}")
+@router.delete("/{ds_id}", dependencies=[Depends(require_permission("datasource:edit"))])
 def delete_datasource(ds_id: int,
                        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = DatasourceService(db)
@@ -74,7 +76,7 @@ def delete_datasource(ds_id: int,
     return ApiResponse()
 
 
-@router.post("/{ds_id}/toggle")
+@router.post("/{ds_id}/toggle", dependencies=[Depends(require_permission("datasource:edit"))])
 def toggle_enabled(ds_id: int, enabled: bool,
                     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc = DatasourceService(db)
@@ -83,7 +85,8 @@ def toggle_enabled(ds_id: int, enabled: bool,
 
 
 @router.post("/test-connection", response_model=ApiResponse[DatasourceTestResult])
-def test_connection(req: DatasourceTestConnection):
+def test_connection(req: DatasourceTestConnection,
+                    current_user: User = Depends(get_current_user)):
     """测试连接（不保存）"""
     result = DatasourceService.test_connection(ds_type=req.ds_type, config=req.config)
     return ApiResponse(data=result)
