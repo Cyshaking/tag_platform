@@ -48,9 +48,14 @@ tag_platform/
 ├── docs/                       # 设计/需求/测试文档（docx）
 ├── scripts/                    # 辅助脚本（冒烟测试等）
 ├── static/                     # 前端静态资源
-│   ├── css/main.css            # 全站设计令牌（深海军蓝正式风）
-│   ├── js/common.js            # 登录/主题/权限通用逻辑
-│   ├── index.html              # 登录页
+│   ├── css/
+│   │   ├── main.css              # ops 工业数据面板（默认主题）
+│   │   ├── classic.css           # classic V1.4 海军蓝基础样式
+│   │   ├── classic-extra.css     # classic 新版结构类补齐样式
+│   │   ├── clean.css             # clean Linear 极简基础样式
+│   │   ├── clean-extra.css       # clean 新版结构类补齐样式
+│   ├── js/common.js            # 登录/API/权限/时钟/待办/主题 FAB 通用逻辑
+│   ├── index.html              # 登录页（固定 ops 深色，不参与主题切换）
 │   ├── dashboard.html          # 首页
 │   ├── metadata.html           # 元数据
 │   ├── themes.html             # 业务主题
@@ -76,6 +81,7 @@ tag_platform/
 │   ├── services/               # 业务逻辑层（12 个 service）
 │   │   └── base.py             # BaseService + 通用 serial_no 编号生成器
 │   └── utils/                  # 密码加密 / JWT / 异常定义 / Excel 解析
+│       └── sql_guard.py        # V1.7 SQL 关键字/注入模式识别与白名单校验
 └── tests/                      # pytest 测试套件
 ```
 
@@ -97,11 +103,12 @@ pip install -r requirements.txt
 python run.py
 ```
 
-默认监听 `http://0.0.0.0:8000`，启动时自动：
+默认监听 `http://127.0.0.1:8000`，启动时自动：
 
 1. 建表（`init_db`）
 2. 初始化默认角色与管理员账号
 3. 写入保险演示数据（幂等）
+4. `secret_key` 若为占位值或长度不足 32 位，生成本进程临时随机密钥并打印告警（生产必须在 `config.yaml` 配置独立强随机密钥）
 
 ### 3. 访问
 
@@ -120,7 +127,19 @@ python run.py
 | `bap` | `123456` | 业务审批人（biz_approver） |
 | `normal` | `123456` | 普通用户（user） |
 
-管理员登录后可通过「设置」按钮切换为其他角色账号进行权限测试。切换行为仅在 `config.yaml demo_switch.enabled=true` 时可用，生产环境必须关闭。
+管理员通过 admin/admin123 登录即拥有全部权限。V1.7 起移除了演示身份切换器（`demo_switch.enabled` 在 `config.yaml` 中默认为 false，即使打开也需要额外 `/api/auth/switch` 端点授权），生产环境请勿在代码中硬编码多账号凭据。
+
+### 界面风格切换
+
+所有业务页右下角有圆形 FAB 按钮，可在三套主题间一键切换，选择写入 `localStorage.theme` 跨页记忆：
+
+| 主题 | 风格 | 主强调色 | 侧栏 |
+|------|------|---------|------|
+| **OPS 工业数据面板**（默认） | 深石墨底 + 荧光青 + 等宽数字 | `#35e0c0` | 236px 深色固定侧栏带编号 |
+| **Classic 经典海军蓝** | V1.4 深海军蓝顶栏 + 浅灰侧栏 | `#1F4D80` | 244px 浅灰侧栏 |
+| **Clean Linear 极简** | 极浅冷灰底 + 靛蓝 + 无卡片分割线 | `#5E6AD2` | 208px 纯白窄侧栏 |
+
+登录页 `index.html` 固定 ops 深色，不参与切换。
 
 ### 运行测试
 
@@ -155,6 +174,34 @@ self._gen_serial_no(ModelClass, "PREFIX")
 ---
 
 ## 版本更新日志
+
+### V1.7 — 2026-11-11
+
+**前端：三主题切换**
+
+- **ops 工业数据面板（默认）**：深石墨底 `#080b0f`、荧光青 `#35e0c0` 强调、236px 深色侧栏带编号、细网格底纹、等宽数字大写微标签
+- **classic 经典海军蓝**：从 `git HEAD` 恢复 V1.4 深海军蓝正式风（`#1B3A5C` 顶栏 + 浅灰侧栏），补齐新版结构类的浅色皮肤
+- **clean Linear 极简**：极浅冷灰 `#fafbfc` 底 + 靛蓝 `#5E6AD2` 强调 + 208px 纯白窄侧栏无编号 + 无卡片靠分割线组织层次
+- 右下角 FAB 三选项切换，选择写入 `localStorage.theme` 跨页记忆；登录页 `index.html` 固定 ops 深色，不参与切换
+- 实现方式：11 个业务页 `<head>` 用阻塞脚本按 `localStorage.theme` 条件加载样式表（ops→main.css / classic→classic.css+classic-extra.css / clean→clean.css+clean-extra.css），避免两套 CSS 互相污染
+- common.js 统一 API 封装（HTTP 401 自动跳登录）、表格渲染、权限导航、时钟脉冲点、待办角标、主题 FAB 渲染
+
+**后端：P0 安全加固**
+
+- 新增 `app/utils/sql_guard.py`：SQL 关键字/注入模式识别 + 标签任务配置白名单校验（禁止 DROP/DELETE/GRANT 等危险关键字，禁止多语句）
+- 所有 router 统一 HTTP 401 → 清空 token 并跳转登录（不再静默抛异常）
+- `config.yaml` 的 `secret_key` 若为占位值或长度不足 32 位，启动时生成临时随机密钥并告警（仅本次进程有效；生产必须配置独立强随机密钥）
+- auth/datasource/execution/sql_validator/routers 等模块边界校验与错误信息脱敏
+
+**测试：新增**
+
+- `tests/integration/test_api_security_p0.py`：P0 安全集成用例（401 跳转、SQL Guard 阻断）
+- `tests/unit/test_sql_guard.py`：SQL Guard 单测（关键字白名单/黑名单、多语句阻断、合法 SQL 通过）
+- 既有 integration 测试同步升级（conftest + 5 个 test_api_* 文件）
+
+**文档**
+
+- 三份 Word（需求规格说明书 / 方案设计文档 / 测试与验收报告）同步更新 V1.7 变更与三主题说明
 
 ### V1.6 — 2026-11-07
 
